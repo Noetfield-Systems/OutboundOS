@@ -182,48 +182,85 @@ async function personalized(c:any,p:any,w:any){
  if(ai?.subject&&ai?.body)return {subject:trim(ai.subject,250),body:trim(ai.body,4500)};
  return fallback;
 }
+
+async function reconcileUnknown(wid?:string){
+ const list=await db.unsafe("UPDATE os_messages SET status='unknown' WHERE status='queued' AND direction='outbound' AND created_at<now()-interval '10 minutes' AND ($1::text IS NULL OR workspace_id=$1) RETURNING workspace_id,prospect_id",[wid||null]);
+ for(const item of list){
+  await db.unsafe("UPDATE os_prospects SET status='needs_review' WHERE id=$1 AND workspace_id=$2 AND status='sending'",[item.prospect_id,item.workspace_id]);
+ }
+ return list.length;
+}
 async function dispatch(wid:string,cid:string,followup=false,limit=10){
  const w=(await db.unsafe("SELECT * FROM os_workspaces WHERE id=$1",[wid]))[0];
  const c=(await db.unsafe("SELECT * FROM os_campaigns WHERE workspace_id=$1 AND id=$2",[wid,cid]))[0];
  if(!w||!c)throw Error("Campaign unavailable");
- if(!w.saved)throw Error("Save this workspace with a passkey to enable outbound emails.");
+ if(!sendableCampaign(c))throw Error("Activate the campaign before sending. Paused or draft campaigns cannot send.");
+ if(!w.saved)throw Error("Save your workspace with a passkey to enable outbound emails.");
  const mail=await service(wid,"resend");
- if(!mail.key||!mail.from)throw Error("Connect Resend and a verified sender from Integrations.");
- if(!w.offer)throw Error("Add your business offer before sending.");
- const used=(await db.unsafe("SELECT count(*)::int as n FROM os_messages WHERE workspace_id=$1 AND direction='outbound' AND status IN ('sent','delivered') AND created_at>=date_trunc('day',now())",[wid]))[0].n;
- let capacity=Math.max(0,Math.min(limit,20-used));
+ if(!mail.key||!mail.from)throw Error("Connect a verified Resend sender in Integrations.");
+ if(!w.offer)throw Error("Save your business offer before sending.");
+ const cap=Math.max(1,Math.min(1000,Number(w.daily_limit)||20));
+ await reconcileUnknown(wid);
+ const used=(await db.unsafe("SELECT count(*)::int AS n FROM os_messages WHERE workspace_id=$1 AND direction='outbound' AND status IN ('queued','sent','delivered','unknown') AND created_at>=date_trunc('day',now())",[wid]))[0].n;
+ const capacity=dailyCapacity(used,cap,limit);
  if(capacity===0)return {sent:0,failed:0,skipped:"Daily capacity reached"};
  let leads:any[];
  if(followup){
   if(!c.followup_body)return {sent:0,failed:0,skipped:"No follow-up step configured"};
-  leads=await db.unsafe("SELECT p.* FROM os_prospects p WHERE p.workspace_id=$1 AND p.status='contacted' AND p.email IS NOT NULL AND p.consent_basis<>'' AND p.sent_at < now() - make_interval(days=>$3) AND (SELECT count(*)::int FROM os_messages m WHERE m.workspace_id=$1 AND m.prospect_id=p.id AND m.campaign_id=$2 AND m.direction='outbound' AND m.status IN ('sent','delivered'))=1 ORDER BY p.sent_at LIMIT $4",[wid,cid,c.followup_days,capacity]);
- }else{
-  leads=await db.unsafe("SELECT * FROM os_prospects WHERE workspace_id=$1 AND email IS NOT NULL AND consent_basis<>'' AND status='qualified' ORDER BY score DESC,created_at LIMIT $2",[wid,capacity]);
+  leads=await db.unsafe("SELECT p.* FROM os_prospects p WHERE p.workspace_id=$1 AND p.status='contacted' AND p.email IS NOT NULL AND trim(p.consent_basis)<>'' AND p.sent_at<now()-make_interval(days=>$3) AND (SELECT count(*)::int FROM os_messages m WHERE m.workspace_id=$1 AND m.prospect_id=p.id AND m.campaign_id=$2 AND m.direction='outbound' AND m.status IN ('sent','delivered'))=1 ORDER BY p.sent_at LIMIT $4",[wid,cid,c.followup_days,capacity]);
+ } else {
+  leads=await db.unsafe("SELECT * FROM os_prospects WHERE workspace_id=$1 AND status='qualified' AND email IS NOT NULL AND trim(consent_basis)<>'' ORDER BY score DESC,created_at LIMIT $2",[wid,capacity]);
  }
- let sent=0,failed=0;
+ let sent=0,failed=0,skipped=0;
  for(const p of leads){
-  const prior=followup?"contacted":"qualified",mId=uid(),claim=await db.unsafe("UPDATE os_prospects SET status='sending' WHERE id=$1 AND workspace_id=$2 AND status=$3 RETURNING id",[p.id,wid,prior]);
-  if(!claim.length)continue;
-  const draft=followup?{subject:replaceWords(c.followup_subject||"Following up: "+c.subject,p,w),body:replaceWords(c.followup_body,p,w)}:await personalized(c,p,w);
-  await db.unsafe("INSERT INTO os_messages(id,workspace_id,prospect_id,campaign_id,subject,body,status,kind) VALUES($1,$2,$3,$4,$5,$6,'queued',$7)",[mId,wid,p.id,cid,draft.subject,draft.body,followup?"followup":"initial"]);
+  if(!eligibleForSend(p)){skipped++;continue;}
+  const prior=followup?"contacted":"qualified",mId=uid();
+  // Personalization runs before claiming a slot so provider latency never holds a database lock.
+  const draft=followup?{
+    subject:replaceWords(c.followup_subject||"Following up: "+c.subject,p,w),
+    body:replaceWords(c.followup_body,p,w)
+  }:await personalized(c,p,w);
+  // Reserve a daily slot transactionally. Concurrent API and cron sends share one lock per tenant.
+  const reserved=await db.begin(async sql=>{
+    await sql.unsafe("SELECT pg_advisory_xact_lock(hashtext($1))",[wid]);
+    const active=await sql.unsafe("SELECT status FROM os_campaigns WHERE id=$1 AND workspace_id=$2",[cid,wid]);
+    if(active[0]?.status!=="active")return false;
+    const capNow=(await sql.unsafe("SELECT daily_limit FROM os_workspaces WHERE id=$1",[wid]))[0]?.daily_limit||20;
+    const today=(await sql.unsafe("SELECT count(*)::int AS n FROM os_messages WHERE workspace_id=$1 AND direction='outbound' AND status IN ('queued','sent','delivered','unknown') AND created_at>=date_trunc('day',now())",[wid]))[0].n;
+    if(dailyCapacity(today,capNow,1)===0)return false;
+    const claim=await sql.unsafe("UPDATE os_prospects SET status='sending' WHERE id=$1 AND workspace_id=$2 AND status=$3 AND email IS NOT NULL AND trim(consent_basis)<>'' RETURNING id",[p.id,wid,prior]);
+    if(!claim.length)return false;
+    await sql.unsafe("INSERT INTO os_messages(id,workspace_id,prospect_id,campaign_id,subject,body,status,kind) VALUES($1,$2,$3,$4,$5,$6,'queued',$7)",[mId,wid,p.id,cid,draft.subject,draft.body,followup?"followup":"initial"]);
+    return true;
+  });
+  if(!reserved){skipped++;continue;}
   const unsub=(Bun.env.PUBLIC_BASE_URL||"https://"+Bun.env.RAILWAY_PUBLIC_DOMAIN).replace(/\/$/,"")+"/u/"+p.unsub_token;
   try{
-   const r=await fetch("https://api.resend.com/emails",{method:"POST",headers:{"authorization":"Bearer "+mail.key,"content-type":"application/json","Idempotency-Key":mId},body:JSON.stringify({from:mail.from,to:[p.email],subject:draft.subject,text:draft.body+"\n\nUnsubscribe: "+unsub,headers:{"List-Unsubscribe":"<"+unsub+">","List-Unsubscribe-Post":"List-Unsubscribe=One-Click"}}),signal:AbortSignal.timeout(15000)});
-   const data=await r.json().catch(()=>({})) as any;
-   if(!r.ok||!data.id)throw Error("Resend HTTP "+r.status);
-   await db.unsafe("UPDATE os_messages SET status='sent',provider_id=$2 WHERE id=$1",[mId,data.id]);
-   await db.unsafe("UPDATE os_prospects SET status='contacted',sent_at=now() WHERE id=$1",[p.id]);
+   const response=await fetch("https://api.resend.com/emails",{method:"POST",headers:{
+     "authorization":"Bearer "+mail.key,"content-type":"application/json","Idempotency-Key":mId
+   },body:JSON.stringify({from:mail.from,to:[p.email],subject:draft.subject,
+     text:draft.body+"\n\nUnsubscribe: "+unsub,
+     headers:{"List-Unsubscribe":"<"+unsub+">","List-Unsubscribe-Post":"List-Unsubscribe=One-Click"}
+   }),signal:AbortSignal.timeout(15000)});
+   const result=await response.json().catch(()=>({})) as any;
+   if(!response.ok||!result.id)throw Error("Resend HTTP "+response.status);
+   await db.unsafe("UPDATE os_messages SET status='sent',provider_id=$2 WHERE id=$1",[mId,result.id]);
+   await db.unsafe("UPDATE os_prospects SET status='contacted',sent_at=now() WHERE id=$1 AND workspace_id=$2",[p.id,wid]);
    sent++;
   }catch(err){
-   await db.unsafe("UPDATE os_messages SET status='failed' WHERE id=$1",[mId]);
-   await db.unsafe("UPDATE os_prospects SET status=$2 WHERE id=$1",[p.id,prior]);
+   // A network timeout is ambiguous: provider might have accepted the message.
+   // Never blindly resubmit an ambiguous attempt: preserve the idempotency receipt for review.
+   const ambiguous=err instanceof Error && (/timeout|abort|network|fetch/i.test(err.message)||err.name==="TimeoutError");
+   await db.unsafe("UPDATE os_messages SET status=$2 WHERE id=$1",[mId,ambiguous?"unknown":"failed"]);
+   await db.unsafe("UPDATE os_prospects SET status=$2 WHERE id=$1 AND workspace_id=$3",[p.id,ambiguous?"needs_review":prior,wid]);
    failed++;
-   await event(wid,"send_error","Provider failed to accept email for "+p.company+": "+trim(E(err),150));
+   await event(wid,"send_error",ambiguous?"Provider response unknown; review before retry":"Email not accepted by provider");
   }
  }
- await event(wid,"outreach",(followup?"Follow-up":"Campaign")+" delivery: "+sent+" accepted, "+failed+" failed.");
- return {sent,failed,eligible:leads.length};
+ await event(wid,"outreach",(followup?"Follow-up":"Campaign")+": "+sent+" accepted, "+failed+" failed, "+skipped+" skipped.");
+ return {sent,failed,skipped,eligible:leads.length,daily_limit:cap};
 }
+
 async function runAgent(wid:string){
  const w=(await db.unsafe("SELECT * FROM os_workspaces WHERE id=$1",[wid]))[0];
  if(!w.enabled||!w.saved)return {skipped:"Autopilot disabled"};
