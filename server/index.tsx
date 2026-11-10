@@ -98,13 +98,14 @@ function allowedIP(ip:string){
  return !(n[0]===0||n[0]===10||n[0]===127||n[0]>=224||n[0]===169&&n[1]===254||n[0]===172&&n[1]>=16&&n[1]<=31||n[0]===192&&n[1]===168||n[0]===100&&n[1]>=64&&n[1]<=127||n[0]===192&&n[1]===0||n[0]===198&&n[1]>=18&&n[1]<=19);
 }
 
-async function pinnedPublicHtml(u:URL,address:string,family:number):Promise<string>{
+
+async function pinnedPublicHtml(u:URL,address:string,family:number):Promise<{html:string,redirect:string|null}>{
  return await new Promise((resolve,reject)=>{
   let settled=false,total=0;const chunks:Buffer[]=[];
-  const finish=(error?:Error,value?:string)=>{
+  const finish=(error?:Error,value?:{html:string,redirect:string|null})=>{
    if(settled)return;
    settled=true;
-   if(error)reject(error);else resolve(value||"");
+   if(error)reject(error);else resolve(value||{html:"",redirect:null});
   };
   const client=u.protocol==="https:"?httpsRequest:httpRequest;
   const request=client(u,{
@@ -112,9 +113,18 @@ async function pinnedPublicHtml(u:URL,address:string,family:number):Promise<stri
     lookup:(_host:any,options:any,cb:any)=>{
       if(options?.all)cb(null,[{address,family}]);else cb(null,address,family);
     },
-    headers:{"user-agent":"OutboundOSResearch/2.1","accept":"text/html","accept-encoding":"identity"}
+    headers:{"user-agent":"OutboundOSResearch/2.2","accept":"text/html","accept-encoding":"identity"}
   },response=>{
     const code=response.statusCode||0;
+    if([301,302,303,307,308].includes(code)&&response.headers.location){
+      try{
+       const next=siteUrl(new URL(String(response.headers.location),u).toString());
+       // Never downgrade a secure website to plain HTTP during redirect traversal.
+       if(u.protocol==="https:"&&next.protocol!=="https:")throw Error("Insecure website redirect");
+       finish(undefined,{html:"",redirect:next.toString()});
+      }catch(err){finish(err instanceof Error?err:new Error("Invalid redirect"))}
+      response.destroy();return;
+    }
     if(code<200||code>=300){finish(new Error("Website returned HTTP "+code));response.destroy();return;}
     const type=response.headers["content-type"]||"";
     if(!String(type).toLowerCase().includes("text/html")){finish(new Error("Expected public HTML content"));response.destroy();return;}
@@ -122,16 +132,15 @@ async function pinnedPublicHtml(u:URL,address:string,family:number):Promise<stri
     if(encoding!=="identity"){finish(new Error("Unsupported website response encoding"));response.destroy();return;}
     response.on("data",(chunk:Buffer)=>{
       if(settled)return;
-      const buf=Buffer.from(chunk);
-      const remaining=300000-total;
+      const buf=Buffer.from(chunk),remaining=300000-total;
       chunks.push(buf.subarray(0,Math.max(0,remaining)));
       total+=Math.min(buf.length,Math.max(0,remaining));
       if(buf.length>remaining){
-        finish(undefined,Buffer.concat(chunks).toString("utf8"));
+        finish(undefined,{html:Buffer.concat(chunks).toString("utf8"),redirect:null});
         response.destroy();
       }
     });
-    response.on("end",()=>finish(undefined,Buffer.concat(chunks).toString("utf8")));
+    response.on("end",()=>finish(undefined,{html:Buffer.concat(chunks).toString("utf8"),redirect:null}));
     response.on("error",(err:Error)=>finish(err));
   });
   request.on("timeout",()=>request.destroy(new Error("Website request timed out")));
@@ -140,13 +149,17 @@ async function pinnedPublicHtml(u:URL,address:string,family:number):Promise<stri
  });
 }
 async function crawl(input:string){
- const u=siteUrl(input);
- const ips=await lookup(u.hostname,{all:true});
- if(!ips.length||!ips.every(v=>allowedIP(v.address)))throw Error("Website must resolve to a public address");
- // HTTP connection uses the validated IP without another resolver lookup:
- // DNS rebinding cannot redirect the crawler onto a private network address.
- const selected=ips.find(v=>v.family===4)||ips[0];
- const html=await pinnedPublicHtml(u,selected.address,selected.family);
+ let u=siteUrl(input),html="",resolved=false;
+ for(let hop=0;hop<4;hop++){
+   const ips=await lookup(u.hostname,{all:true});
+   if(!ips.length||!ips.every(v=>allowedIP(v.address)))throw Error("Website must resolve to a public address");
+   // Revalidate and pin the resolved address at every permitted redirect hop.
+   const selected=ips.find(v=>v.family===4)||ips[0];
+   const result=await pinnedPublicHtml(u,selected.address,selected.family);
+   if(result.redirect){u=siteUrl(result.redirect);continue;}
+   html=result.html;resolved=true;break;
+ }
+ if(!resolved)throw Error("Too many website redirects");
  const decode=(v:string)=>v.replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;/gi,"'").replace(/&lt;/gi,"<").replace(/&gt;/gi,">");
  const value=(re:RegExp)=>decode(((html.match(re)||[])[1]||"").replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim());
  const title=value(/<title[^>]*>([\s\S]*?)<\/title>/i),headline=value(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
