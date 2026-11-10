@@ -145,7 +145,8 @@ async function crawl(input:string){
  if(!ips.length||!ips.every(v=>allowedIP(v.address)))throw Error("Website must resolve to a public address");
  // HTTP connection uses the validated IP without another resolver lookup:
  // DNS rebinding cannot redirect the crawler onto a private network address.
- const html=await pinnedPublicHtml(u,ips[0].address,ips[0].family);
+ const selected=ips.find(v=>v.family===4)||ips[0];
+ const html=await pinnedPublicHtml(u,selected.address,selected.family);
  const decode=(v:string)=>v.replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;/gi,"'").replace(/&lt;/gi,"<").replace(/&gt;/gi,">");
  const value=(re:RegExp)=>decode(((html.match(re)||[])[1]||"").replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim());
  const title=value(/<title[^>]*>([\s\S]*?)<\/title>/i),headline=value(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
