@@ -7,11 +7,15 @@
     "start": "bun run server/index.tsx",
     "dev": "bun --watch server/index.tsx",
     "test": "bun test",
-    "check": "bun test && bun build server/index.tsx --target=bun --outdir=.output-check"
+    "check": "bun test && bun build server/index.tsx --target=bun --outdir=.output-check",
+    "test:browser": "playwright test --config=playwright.config.ts"
   },
   "dependencies": {
     "@simplewebauthn/server": "13.3.0",
     "postgres": "^3.4.5",
     "svix": "^1.44.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1"
   }
 }
