@@ -60,3 +60,22 @@ test('Persona F · mobile Lead Finder and Inbox accessible',async ({page})=>{
  await inbox.scrollIntoViewIfNeeded();await inbox.click();
  await expect(page.locator('#main')).toContainText('Turn replies into relationships');
 });
+
+
+test('Persona G · passkey enrollment and account recovery via virtual authenticator',async ({page,context})=>{
+ const cdp=await context.newCDPSession(page);
+ await cdp.send('WebAuthn.enable');
+ await cdp.send('WebAuthn.addVirtualAuthenticator',{options:{
+  protocol:'ctap2',transport:'internal',hasResidentKey:true,
+  hasUserVerification:true,isUserVerified:true,automaticPresenceSimulation:true
+ }});
+ await page.goto('/');
+ await page.locator('nav#nav2 button[title="Settings"]').click();
+ await page.getByRole('button',{name:'Save with passkey'}).click();
+ await expect(page.locator('#main')).toContainText('Your workspace is saved.');
+ await page.once('dialog',dialog=>dialog.accept());
+ await page.getByRole('button',{name:'Sign out'}).click();
+ await page.locator('nav#nav2 button[title="Settings"]').click();
+ await page.getByRole('button',{name:'Sign in with passkey'}).click();
+ await expect(page.locator('#main')).toContainText('Your workspace is saved.');
+});
