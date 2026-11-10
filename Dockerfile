@@ -1,4 +1,4 @@
-FROM oven/bun:1.2 AS build
+FROM oven/bun:1 AS build
 WORKDIR /app
 COPY package.json ./
 RUN bun install --no-save
@@ -6,7 +6,7 @@ COPY server ./server
 COPY tests ./tests
 RUN bun test
 RUN bun build server/index.tsx --target=bun --outdir=./compiled
-FROM oven/bun:1.2
+FROM oven/bun:1
 WORKDIR /app
 ENV NODE_ENV=production PORT=8080
 COPY package.json ./
