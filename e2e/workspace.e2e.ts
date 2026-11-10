@@ -77,5 +77,7 @@ test('Persona G · passkey enrollment and account recovery via virtual authentic
  await page.getByRole('button',{name:'Sign out'}).click();
  await page.locator('nav#nav2 button[title="Settings"]').click();
  await page.getByRole('button',{name:'Sign in with passkey'}).click();
+ await expect(page.locator('#accountType')).toContainText('Passkey secured');
+ await page.locator('nav#nav2 button[title="Settings"]').click();
  await expect(page.locator('#main')).toContainText('Your workspace is saved.');
 });
