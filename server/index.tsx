@@ -155,7 +155,8 @@ async function crawl(input:string){
    if(!ips.length||!ips.every(v=>allowedIP(v.address)))throw Error("Website must resolve to a public address");
    // Revalidate and pin the resolved address at every permitted redirect hop.
    const selected=ips.find(v=>v.family===4)||ips[0];
-   const result=await pinnedPublicHtml(u,selected.address,selected.family);
+   if(Bun.env.QA_DIAGNOSTICS==="1")console.log("CRAWLER_HOP",{host:u.hostname,ip:selected.address,family:selected.family,hop});
+   const result=await pinnedPublicHtml(u,selected.address,selected.family).catch((err)=>{if(Bun.env.QA_DIAGNOSTICS==="1")console.error("CRAWLER_PIN_ERROR",{host:u.hostname,ip:selected.address,message:String(err)});throw err});
    if(result.redirect){u=siteUrl(result.redirect);continue;}
    html=result.html;resolved=true;break;
  }
