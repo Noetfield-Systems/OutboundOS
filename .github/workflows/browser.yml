@@ -1,0 +1,40 @@
+name: Browser Regression
+on:
+  push:
+  pull_request:
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: outboundos_test
+        ports:
+          - 5432:5432
+        options: --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL: postgres://postgres:testpass@localhost:5432/outboundos_test
+      E2E_BASE_URL: http://localhost:8080
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install
+      - run: bunx playwright install chromium --with-deps
+      - name: Start test server
+        run: |
+          bun run server/index.tsx > server-test.log 2>&1 &
+          sleep 5
+          curl -fsS http://localhost:8080/health/ready
+      - run: bun run test:browser
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-evidence
+          path: |
+            test-results/
+            playwright-report/
+            server-test.log
+          if-no-files-found: ignore
