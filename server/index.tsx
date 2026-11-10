@@ -1,6 +1,8 @@
 
 import postgres from "postgres";
 import { lookup } from "node:dns/promises";
+import { request as httpRequest } from "node:http";
+import { request as httpsRequest } from "node:https";
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from "@simplewebauthn/server";
 import { Webhook } from "svix";
 import { initBridge, enqueueBridge, flushBridge, bridgeStatus } from "./bridge.ts";
@@ -82,12 +84,55 @@ function allowedIP(ip:string){
  if(n.length!==4||n.some(a=>a>255||a<0))return false;
  return !(n[0]===0||n[0]===10||n[0]===127||n[0]>=224||n[0]===169&&n[1]===254||n[0]===172&&n[1]>=16&&n[1]<=31||n[0]===192&&n[1]===168||n[0]===100&&n[1]>=64&&n[1]<=127||n[0]===192&&n[1]===0||n[0]===198&&n[1]>=18&&n[1]<=19);
 }
+
+async function pinnedPublicHtml(u:URL,address:string,family:number):Promise<string>{
+ return await new Promise((resolve,reject)=>{
+  let settled=false,total=0;const chunks:Buffer[]=[];
+  const finish=(error?:Error,value?:string)=>{
+   if(settled)return;
+   settled=true;
+   if(error)reject(error);else resolve(value||"");
+  };
+  const client=u.protocol==="https:"?httpsRequest:httpRequest;
+  const request=client(u,{
+    timeout:9000,
+    lookup:(_host:any,options:any,cb:any)=>{
+      if(options?.all)cb(null,[{address,family}]);else cb(null,address,family);
+    },
+    headers:{"user-agent":"OutboundOSResearch/2.1","accept":"text/html","accept-encoding":"identity"}
+  },response=>{
+    const code=response.statusCode||0;
+    if(code<200||code>=300){finish(new Error("Website returned HTTP "+code));response.destroy();return;}
+    const type=response.headers["content-type"]||"";
+    if(!String(type).toLowerCase().includes("text/html")){finish(new Error("Expected public HTML content"));response.destroy();return;}
+    const encoding=String(response.headers["content-encoding"]||"identity").toLowerCase();
+    if(encoding!=="identity"){finish(new Error("Unsupported website response encoding"));response.destroy();return;}
+    response.on("data",(chunk:Buffer)=>{
+      if(settled)return;
+      const buf=Buffer.from(chunk);
+      const remaining=300000-total;
+      chunks.push(buf.subarray(0,Math.max(0,remaining)));
+      total+=Math.min(buf.length,Math.max(0,remaining));
+      if(buf.length>remaining){
+        finish(undefined,Buffer.concat(chunks).toString("utf8"));
+        response.destroy();
+      }
+    });
+    response.on("end",()=>finish(undefined,Buffer.concat(chunks).toString("utf8")));
+    response.on("error",(err:Error)=>finish(err));
+  });
+  request.on("timeout",()=>request.destroy(new Error("Website request timed out")));
+  request.on("error",(err:Error)=>finish(err));
+  request.end();
+ });
+}
 async function crawl(input:string){
- const u=siteUrl(input);const ips=await lookup(u.hostname,{all:true});if(!ips.length||!ips.every(v=>allowedIP(v.address)))throw Error("Website must resolve to a public address");
- const r=await fetch(u.toString(),{redirect:"error",headers:{"user-agent":"OutboundOSResearch/2.0","accept":"text/html"},signal:AbortSignal.timeout(9000)});
- if(!r.ok)throw Error("Website returned HTTP "+r.status);
- if(!((r.headers.get("content-type")||"").includes("text/html")))throw Error("Expected website HTML");
- const html=(await r.text()).slice(0,150000);
+ const u=siteUrl(input);
+ const ips=await lookup(u.hostname,{all:true});
+ if(!ips.length||!ips.every(v=>allowedIP(v.address)))throw Error("Website must resolve to a public address");
+ // HTTP connection uses the validated IP without another resolver lookup:
+ // DNS rebinding cannot redirect the crawler onto a private network address.
+ const html=await pinnedPublicHtml(u,ips[0].address,ips[0].family);
  const decode=(v:string)=>v.replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;/gi,"'").replace(/&lt;/gi,"<").replace(/&gt;/gi,">");
  const value=(re:RegExp)=>decode(((html.match(re)||[])[1]||"").replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim());
  const title=value(/<title[^>]*>([\s\S]*?)<\/title>/i),headline=value(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
