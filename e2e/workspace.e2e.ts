@@ -71,7 +71,7 @@ test('Persona G · passkey enrollment and account recovery via virtual authentic
  }});
  await page.goto('/');
  await page.locator('nav#nav2 button[title="Settings"]').click();
- await page.getByRole('button',{name:'Save with passkey'}).click();
+ await page.locator('#main').getByRole('button',{name:'Save with passkey'}).click();
  await expect(page.locator('#main')).toContainText('Your workspace is saved.');
  await page.once('dialog',dialog=>dialog.accept());
  await page.getByRole('button',{name:'Sign out'}).click();
