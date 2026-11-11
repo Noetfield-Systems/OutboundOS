@@ -39,7 +39,7 @@ test('Growth interest can be submitted with explicit consent, no payment',async 
  await expect(page.getByRole('dialog')).toBeVisible();
  const email='marketing-qa-'+Date.now()+'@example.com';
  await page.locator('input[name="email"]').fill(email);
- await page.locator('input[name="website"]').fill('example.com');
+ await page.locator('#interestForm input[name="website"]').fill('example.com');
  await page.locator('input[name="consent"]').check();
  await page.getByRole('button',{name:/Request access/}).click();
  await expect(page.getByRole('dialog')).toContainText('Request received');
