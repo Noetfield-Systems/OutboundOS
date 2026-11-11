@@ -73,6 +73,7 @@ test('Persona G · passkey enrollment and account recovery via virtual authentic
  await page.locator('nav#nav2 button[title="Settings"]').click();
  await page.locator('#main').getByRole('button',{name:'Save with passkey'}).click();
  await expect(page.locator('#main')).toContainText('Your workspace is saved.');
+ const ownerId=await page.evaluate(async()=> (await (await fetch('/api/state')).json()).id);
  await page.once('dialog',dialog=>dialog.accept());
  await page.getByRole('button',{name:'Sign out'}).click();
  await page.locator('nav#nav2 button[title="Settings"]').click();
@@ -80,4 +81,6 @@ test('Persona G · passkey enrollment and account recovery via virtual authentic
  await expect(page.locator('#accountType')).toContainText('Passkey secured');
  await page.locator('nav#nav2 button[title="Settings"]').click();
  await expect(page.locator('#main')).toContainText('Your workspace is saved.');
+ const restoredId=await page.evaluate(async()=> (await (await fetch('/api/state')).json()).id);
+ expect(restoredId).toBe(ownerId);
 });
