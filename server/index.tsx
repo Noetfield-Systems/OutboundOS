@@ -46,6 +46,7 @@ async function readJson(r:Request){
 }
 const migration=(async()=>{
  await db.unsafe("CREATE TABLE IF NOT EXISTS os_integrations (workspace_id TEXT NOT NULL, provider TEXT NOT NULL, cipher TEXT NOT NULL, nonce TEXT NOT NULL, config JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY(workspace_id,provider))");
+ await db.unsafe("CREATE TABLE IF NOT EXISTS os_growth_events (id TEXT PRIMARY KEY, event TEXT NOT NULL, source TEXT NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT now())");
  await db.unsafe("CREATE TABLE IF NOT EXISTS os_growth_leads (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, website TEXT NOT NULL DEFAULT '', source TEXT NOT NULL DEFAULT 'early-access', consent_at TIMESTAMPTZ NOT NULL DEFAULT now(), created_at TIMESTAMPTZ NOT NULL DEFAULT now())");
  await db.unsafe("CREATE TABLE IF NOT EXISTS os_workspaces (id TEXT PRIMARY KEY, name TEXT NOT NULL DEFAULT '', website TEXT NOT NULL DEFAULT '', headline TEXT NOT NULL DEFAULT '', summary TEXT NOT NULL DEFAULT '', offer TEXT NOT NULL DEFAULT '', icp TEXT NOT NULL DEFAULT '', industry TEXT NOT NULL DEFAULT '', audience TEXT NOT NULL DEFAULT '', calendly TEXT NOT NULL DEFAULT '', mode TEXT NOT NULL DEFAULT 'not_started', enabled BOOLEAN NOT NULL DEFAULT false, saved BOOLEAN NOT NULL DEFAULT false, search_titles TEXT NOT NULL DEFAULT '', search_region TEXT NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())");
  await db.unsafe("ALTER TABLE os_workspaces ADD COLUMN IF NOT EXISTS daily_limit INTEGER NOT NULL DEFAULT 20");
@@ -388,6 +389,16 @@ async function handler(req:Request):Promise<Response>{
  if(!allow(req))return fail("Rate limited. Retry shortly.",429);
  await migration;
 
+
+ if(path==="/api/public/track"&&method==="POST"){
+  const origin=req.headers.get("origin");
+  if(origin&&origin!==url.origin)return fail("Origin mismatch",403);
+  const b=await readJson(req);
+  const eventName=trim(b.event,45),source=trim(b.source,70);
+  if(!["landing_view","hero_submit","workspace_click","growth_open","pricing_view","faq_open"].includes(eventName))return fail("Unsupported event",422);
+  await db.unsafe("INSERT INTO os_growth_events(id,event,source) VALUES($1,$2,$3)",[uid(),eventName,source]);
+  return J({ok:true});
+ }
  if(path==="/api/public/interest"&&method==="POST"){
   const origin=req.headers.get("origin");
   if(origin&&origin!==url.origin)return fail("Origin mismatch",403);
@@ -400,6 +411,7 @@ async function handler(req:Request):Promise<Response>{
   if(website&&/[<>]/.test(website))return fail("Invalid website address.",422);
   if(!["growth-early-access","site-footer","pricing","product-tour"].includes(source))return fail("Unsupported form source.",422);
   await db.unsafe("INSERT INTO os_growth_leads(id,email,website,source) VALUES($1,$2,$3,$4) ON CONFLICT(email) DO UPDATE SET website=excluded.website,source=excluded.source,consent_at=now()",[uid(),email,website,source]);
+  await db.unsafe("INSERT INTO os_growth_events(id,event,source) VALUES($1,'interest_saved',$2)",[uid(),source]);
   return J({ok:true,received:true});
  }
  if(path.startsWith("/u/")){
