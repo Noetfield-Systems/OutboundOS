@@ -76,6 +76,8 @@ test('Persona G · passkey enrollment and account recovery via virtual authentic
  const ownerId=await page.evaluate(async()=> (await (await fetch('/api/state')).json()).id);
  await page.once('dialog',dialog=>dialog.accept());
  await page.getByRole('button',{name:'Sign out'}).click();
+ await expect(page).toHaveURL(/\/$/);
+ await page.locator('.headright').getByRole('link',{name:/Start free/}).click();
  await page.locator('nav#nav2 button[title="Settings"]').click();
  await page.getByRole('button',{name:'Sign in with passkey'}).click();
  await expect(page.locator('#accountType')).toContainText('Passkey secured');
