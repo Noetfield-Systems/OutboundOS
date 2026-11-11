@@ -34,7 +34,7 @@ export const LANDING_PAGE = String.raw`<!doctype html>
 <section class="hero"><div class="container hero-grid">
 <div><div class="eyebrow">THE AI SALES WORKFORCE FOR B2B TEAMS</div><h1>Your next customers are out there. <span class="gradient">Put your AI sales agent to work.</span></h1>
 <p class="lead">Turn your website into a sales plan. Define your best buyers, discover real prospects, create personalized outreach and stay on top of replies — without building a sales operation from scratch.</p>
-<div class="formwrap"><form class="urlform" id="siteForm" action="/app" method="get"><input type="url" name="website" id="siteInput" placeholder="Paste your company website, e.g. yourcompany.com" aria-label="Company website" required autocomplete="url"><button type="submit">Analyze my website <span aria-hidden="true">↗</span></button></form>
+<div class="formwrap"><form class="urlform" id="siteForm" action="/app" method="get"><input type="text" inputmode="url" name="website" id="siteInput" placeholder="Paste your company website, e.g. yourcompany.com" aria-label="Company website" required autocomplete="url"><button type="submit">Analyze my website <span aria-hidden="true">↗</span></button></form>
 <div class="trustline"><span>Start with a free workspace</span><span>No credit card required</span><span>Review before sending</span></div></div>
 <div class="hero-proof"><div><strong>One starting point</strong><div>Your business website</div></div><span class="proofbar"></span><div><strong>One connected workflow</strong><div>Research → outreach → replies</div></div></div></div>
 <div class="mock" aria-label="Illustrative sales workspace preview">
