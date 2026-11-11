@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('Persona A · guest premium dashboard without admin key',async ({page})=>{
- await page.goto('/');
+ await page.goto('/app');
  await expect(page).toHaveTitle(/OutboundOS/);
  await expect(page.locator('nav#nav button[title="Overview"]')).toBeVisible();
  await expect(page.locator('#main')).toContainText('Your growth engine');
@@ -9,7 +9,7 @@ test('Persona A · guest premium dashboard without admin key',async ({page})=>{
  await page.screenshot({path:'test-results/premium-desktop.png',fullPage:true});
 });
 test('Persona B · founder business memory persists',async ({page})=>{
- await page.goto('/');
+ await page.goto('/app');
  await page.locator('nav#nav button[title="AI Agent"]').click();
  await expect(page.locator('#main')).toContainText('Make your agent an expert');
  await page.locator('#aName').fill('Audit Example Co');
@@ -22,7 +22,7 @@ test('Persona B · founder business memory persists',async ({page})=>{
  await expect(page.locator('#aOffer')).toHaveValue('Synthetic automation offer');
 });
 test('Persona C · CRM prospect onboarding',async ({page})=>{
- await page.goto('/');
+ await page.goto('/app');
  await page.locator('nav#nav button[title="Prospects"]').click();
  await page.getByRole('button',{name:/Add prospect/}).click();
  await page.locator('#pCompany').fill('Audit Prospect Co');
@@ -32,7 +32,7 @@ test('Persona C · CRM prospect onboarding',async ({page})=>{
  await expect(page.locator('#leadTable')).toContainText('Audit Prospect Co');
 });
 test('Persona D · campaign creates, activates and pauses',async ({page})=>{
- await page.goto('/');
+ await page.goto('/app');
  await page.locator('nav#nav button[title="Campaigns"]').click();
  await page.getByRole('button',{name:/New campaign/}).click();
  await page.locator('#cName').fill('Audit Sequence');
@@ -44,7 +44,7 @@ test('Persona D · campaign creates, activates and pauses',async ({page})=>{
  await expect(page.locator('#main')).toContainText('paused');
 });
 test('Persona E · mobile settings accessible through bottom rail',async ({page})=>{
- await page.setViewportSize({width:390,height:844});await page.goto('/');
+ await page.setViewportSize({width:390,height:844});await page.goto('/app');
  const settings=page.locator('nav#nav2 button[title="Settings"]');
  await settings.scrollIntoViewIfNeeded();
  await expect(settings).toBeVisible();await settings.click();
@@ -52,7 +52,7 @@ test('Persona E · mobile settings accessible through bottom rail',async ({page}
  await page.screenshot({path:'test-results/premium-mobile.png',fullPage:true});
 });
 test('Persona F · mobile Lead Finder and Inbox accessible',async ({page})=>{
- await page.setViewportSize({width:390,height:844});await page.goto('/');
+ await page.setViewportSize({width:390,height:844});await page.goto('/app');
  const finder=page.locator('nav#nav button[title="Lead Finder"]');
  await finder.scrollIntoViewIfNeeded();await finder.click();
  await expect(page.locator('#main')).toContainText('Find buyers who actually fit');
@@ -69,13 +69,15 @@ test('Persona G · passkey enrollment and account recovery via virtual authentic
   protocol:'ctap2',transport:'internal',hasResidentKey:true,
   hasUserVerification:true,isUserVerified:true,automaticPresenceSimulation:true
  }});
- await page.goto('/');
+ await page.goto('/app');
  await page.locator('nav#nav2 button[title="Settings"]').click();
  await page.locator('#main').getByRole('button',{name:'Save with passkey'}).click();
  await expect(page.locator('#main')).toContainText('Your workspace is saved.');
  const ownerId=await page.evaluate(async()=> (await (await fetch('/api/state')).json()).id);
  await page.once('dialog',dialog=>dialog.accept());
  await page.getByRole('button',{name:'Sign out'}).click();
+ await expect(page).toHaveURL(/\/$/);
+ await page.locator('.headright').getByRole('link',{name:/Start free/}).click();
  await page.locator('nav#nav2 button[title="Settings"]').click();
  await page.getByRole('button',{name:'Sign in with passkey'}).click();
  await expect(page.locator('#accountType')).toContainText('Passkey secured');
