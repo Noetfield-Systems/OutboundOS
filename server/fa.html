@@ -283,22 +283,80 @@ function heading(h,p,actions){return '<div class="pagehead"><div><div class="eye
 function empty(h,p,action){return '<div class="empty"><strong>'+h+'</strong><p>'+p+'</p>'+(action||'')+'</div>'}
 function statusTag(status){return '<span class="tag '+(status==='won'||status==='qualified'?'good':status==='needs_review'||status==='lost'?'warn':'')+'">'+esc(stages[status]||status)+'</span>'}
 function contactLabel(c){return esc(c.name||c.company)+' <small> · '+esc(c.company)+'</small>'}
-function today(){
- var m=data.metrics,rows=data.contacts.slice().filter(function(c){return !['won','lost','unsubscribed'].includes(c.status)}).sort(function(a,b){return (a.next_action_at?new Date(a.next_action_at).getTime():9999999999999)-(b.next_action_at?new Date(b.next_action_at).getTime():9999999999999)});
- var due=rows.filter(function(c){return c.next_action_at&&new Date(c.next_action_at).getTime()<Date.now()+86400000}).slice(0,12);
- var unplanned=rows.filter(function(c){return !c.next_action_at}).slice(0,5);
- var all=due.concat(unplanned.filter(function(c){return !due.some(function(d){return d.id===c.id})})).slice(0,12);
- var stagesN={new:data.contacts.filter(function(c){return c.status==='new'||c.status==='research'}).length,contacted:m.contacted,replied:m.replied,qualified:m.qualified,booked:m.booked,converted:m.converted_reported};
- var stageNames={new:'مخاطب پیدا شده',contacted:'پیام ارسال‌شده',replied:'پاسخ دریافت‌شده',qualified:'واجد شرایط',booked:'گفت‌وگو',converted:'تبدیل گزارش‌شده'};
- var bar='<div class="funnel">'+Object.keys(stagesN).map(function(k){return '<div class="frow"><span>'+stageNames[k]+'</span><div class="track"><span style="width:'+Math.min(100,Math.round(stagesN[k]/Math.max(10,m.contacts,1)*100))+'%"></span></div><strong>'+N(stagesN[k])+'</strong></div>'}).join('')+'</div>';
- var items=all.length?'<div class="stack">'+all.map(function(c){return '<div class="item"><div><strong>'+contactLabel(c)+'</strong><p>'+esc(c.next_action||'اقدام بعدی هنوز تعیین نشده')+' · '+esc(c.owner||'Founder')+'</p><small>'+fmt(c.next_action_at)+'</small></div><button class="btn tiny" data-open="'+esc(c.id)+'">پیگیری</button></div>'}).join('')+'</div>':empty('صف امروز خالی است','مخاطب واقعی ثبت کنید و برای هر فرد اقدام بعدی و موعد مشخص بگذارید.');
- el('goalFraction').textContent=N(m.converted_verified)+' / ۱۰';el('goalBar').style.width=Math.min(100,m.converted_verified*10)+'%';
- return heading('میز عملیات امروز','از مخاطب واقعی تا نتیجه قابل سنجش؛ هر حرکت یک مسئول و اقدام بعدی دارد.','<button class="btn primary" data-new-contact="1">+ افزودن مخاطب</button>')+kpi()+
- '<div class="grid"><div><section class="panel"><div class="panelhead"><h2>صف پیگیری و اقدام بعدی</h2><span class="tag warn">'+N(m.overdue)+' موعد گذشته</span></div>'+items+'</section>'+
- '<section class="panel"><div class="panelhead"><h2>حرکت بعدی</h2></div><p>۱. کمپین و مخاطب هدف را تعریف کنید. ۲. پیام پیشنهادی بسازید. ۳. پیام واقعی ارسال‌شده را جداگانه ثبت کنید. ۴. پاسخ، qualification و handoff را ثبت و تاریخ پیگیری تعیین کنید.</p><div class="toolbar"><button class="btn" data-view="campaigns">کمپین‌ها</button><button class="btn" data-view="contacts">مخاطبان</button></div></section></div>'+
- '<div><section class="panel"><div class="panelhead"><h2>قیف ۱۰ کاربر نخست</h2><span class="tag">بدون داده نمونه</span></div>'+bar+'<p class="form-note">تمام شمارش‌ها از رکوردهای واقعی همین workspace هستند؛ ارسال دستی همچنان «گزارش اپراتور» است.</p></section>'+
- '<section class="panel"><h2>انضباط شواهد</h2><p>برای هر outreach، متن پیشنهادی، متن واقعاً ارسال‌شده، کانال، منبع و پاسخ را نگه دارید. conversion خوداظهاری با تأیید مستقل یکی نیست.</p><span class="tag good">تأیید مستقل: '+N(m.converted_verified)+'</span></section></div></div>';
+
+function activeContacts(){return (data.contacts||[]).filter(function(c){return !['won','lost','unsubscribed'].includes(c.status)})}
+function timeGroups(){
+ var now=Date.now(),end=new Date();end.setHours(23,59,59,999);
+ var week=end.getTime()+6*86400000,contacts=activeContacts();
+ return {
+  overdue:contacts.filter(function(c){return c.next_action_at&&new Date(c.next_action_at).getTime()<now}),
+  due:contacts.filter(function(c){return c.next_action_at&&new Date(c.next_action_at).getTime()<=end.getTime()}),
+  week:contacts.filter(function(c){var t=new Date(c.next_action_at).getTime();return c.next_action_at&&t>end.getTime()&&t<=week}),
+  unscheduled:contacts.filter(function(c){return !c.next_action_at})
+ };
 }
+function readySteps(){
+ var hasCampaign=data.campaigns.length>0,hasContacts=data.contacts.length>0,
+ hasSent=data.metrics.contacted>0,hasReplies=data.metrics.replied>0;
+ var steps=[
+  {ok:hasCampaign,k:'کمپین هدفمند',d:'ICP، کانال و پیام اولیه',v:'campaigns'},
+  {ok:hasContacts,k:'مخاطب واقعی',d:'ورود مخاطب با منبع مشخص',v:'contacts'},
+  {ok:hasSent,k:'شروع ارتباط',d:'ثبت پیام واقعاً ارسال‌شده',v:'contacts'},
+  {ok:hasReplies,k:'پیگیری پاسخ',d:'ثبت پاسخ و اقدام بعدی',v:'inbox'}
+ ];
+ return '<div class="stepper">'+steps.map(function(step,i){return '<div class="step '+(step.ok?'is-done':'')+'"><div class="step-no">'+(step.ok?'✓ تکمیل':'گام '+N(i+1))+'</div><strong>'+step.k+'</strong><small>'+step.d+'</small><button data-view="'+step.v+'">'+(step.ok?'مشاهده':'شروع این مرحله')+'</button></div>'}).join('')+'</div>';
+}
+function operatorHero(){
+ var m=data.metrics,groups=timeGroups(),open=groups.overdue.length,verified=Math.min(10,m.converted_verified),percent=verified*10;
+ var headline=!data.campaigns.length?'اولین کمپین را بسازید':!data.contacts.length?'۱۰ مخاطب مناسب را پیدا کنید':open?'پیگیری‌های عقب‌افتاده را جلو ببرید':m.pending_drafts?'پیش‌نویس‌های آماده را بررسی کنید':'گام بعدی فروش را ثبت کنید';
+ var sub=!data.contacts.length?'مسیر جذب از تعریف مخاطب هدف شروع می‌شود؛ هیچ رکورد نمونه‌ای به داده‌ها اضافه نمی‌کنیم.':
+ 'هر تماس یک مسئول، اقدام بعدی و سند لازم دارد. پیشرفت فقط با نتیجه واقعی سنجیده می‌شود.';
+ return '<section class="hero"><div><div class="hero-kicker">FOUNDER SALES DESK · PILOT 01</div><h2>'+headline+'</h2><p>'+sub+'</p><div class="hero-actions">'+
+ (!data.campaigns.length?'<button class="btn primary" data-view="campaigns">ساخت اولین کمپین</button>':'<button class="btn primary" data-new-contact="1">+ مخاطب جدید</button>')+
+ '<button class="btn" data-view="contacts">مشاهده فرصت‌ها</button></div></div>'+
+ '<div class="hero-ring" style="--progress:'+percent+'%"><div class="hero-ring-inner"><strong>'+N(verified)+'/۱۰</strong><small>تبدیل تأییدشده</small></div></div></section>';
+}
+function queueItem(c,now){
+ var due=c.next_action_at?new Date(c.next_action_at).getTime():null,late=due!==null&&due<now;
+ var status=late?'is-late':due!==null?'is-today':'';
+ return '<div class="queue-item '+status+'"><div><div class="titleline"><strong>'+contactLabel(c)+'</strong>'+statusTag(c.status)+'</div>'+
+ '<div class="details"><span>'+esc(c.next_action||'اقدام بعدی را مشخص کنید')+'</span><span>· '+esc(c.owner||'Founder')+'</span><span>· '+fmt(c.next_action_at)+'</span>'+
+ (late?'<span class="tag warn">گذشته از موعد</span>':'')+'</div></div>'+
+ '<div class="actions">'+(c.next_action?'<button class="btn tiny primary" data-action-done="'+esc(c.id)+'">ثبت انجام کار</button>':'')+
+ '<button class="btn tiny ghost" data-open="'+esc(c.id)+'">پرونده</button></div></div>';
+}
+function today(){
+ var m=data.metrics,g=timeGroups(),now=Date.now();
+ var metricsByFilter={overdue:g.overdue.length,due:g.due.length,week:g.week.length,unscheduled:g.unscheduled.length};
+ var queue=g[todayFilter]||g.due;
+ var items=queue.slice().sort(function(a,b){
+   var ad=a.next_action_at?new Date(a.next_action_at).getTime():Number.MAX_SAFE_INTEGER;
+   var bd=b.next_action_at?new Date(b.next_action_at).getTime():Number.MAX_SAFE_INTEGER;
+   return ad-bd
+ }).slice(0,30);
+ var stagesN={new:data.contacts.filter(function(c){return c.status==='new'||c.status==='research'}).length,contacted:m.contacted,replied:m.replied,qualified:m.qualified,booked:m.booked,converted:m.converted_reported};
+ var stageNames={new:'مخاطب شناسایی‌شده',contacted:'تماس ثبت‌شده',replied:'پاسخ ثبت‌شده',qualified:'واجد شرایط',booked:'گفت‌وگو',converted:'تبدیل گزارش‌شده'};
+ var funnel='<div class="funnel">'+Object.keys(stagesN).map(function(k){
+  return '<div class="frow"><span>'+stageNames[k]+'</span><div class="track"><span style="width:'+Math.min(100,Math.round(stagesN[k]/Math.max(10,m.contacts,1)*100))+'%"></span></div><strong>'+N(stagesN[k])+'</strong></div>'
+ }).join('')+'</div>';
+ var tabs=[{k:'overdue',n:'عقب‌افتاده'},{k:'due',n:'تا پایان امروز'},{k:'week',n:'هفت روز آینده'},{k:'unscheduled',n:'بدون موعد'}];
+ var quick='<div class="quickbar"><span class="section-label">نمای صف:</span>'+tabs.map(function(q){return '<button class="quickfilter '+(todayFilter===q.k?'active':'')+'" data-today-filter="'+q.k+'">'+q.n+' · '+N(metricsByFilter[q.k])+'</button>'}).join('')+'</div>';
+ return heading('میز عملیات فروش','اولویت مشخص، اقدام قابل انجام و نتیجه قابل اثبات برای جذب ۱۰ کاربر اولیه.')+
+ operatorHero()+kpi()+'<div class="grid"><div>'+
+ '<section class="panel"><div class="panelhead"><h2>صف اقدام بعدی</h2><span class="tag">'+N(queue.length)+' کار در این نما</span></div>'+quick+
+ (items.length?items.map(function(c){return queueItem(c,now)}).join(''):empty('صف این بخش خالی است','از پرونده مخاطبان اقدام و زمان پیگیری تعیین کنید.','<div class="formactions"><button class="btn" data-view="contacts">رفتن به مخاطبان</button></div>'))+
+ '</section>'+
+ '<section class="panel"><div class="panelhead"><h2>مسیر شروع بدون پیچیدگی</h2><span class="tag good">۴ قدم</span></div><p>از کمپین تا اولین پاسخ؛ در هر مرحله، فقط کار لازم را انجام دهید.</p>'+readySteps()+'</section></div>'+
+ '<div><section class="panel"><div class="panelhead"><h2>قیف جذب واقعی</h2><span class="tag">۱۰ تبدیل هدف</span></div>'+funnel+
+ '<p class="form-note">ارسال دستی و تبدیل اعلامی، با شواهد مستقل یکسان نیستند.</p></section>'+
+ '<section class="panel"><div class="panelhead"><h2>سلامت عملیات</h2><span class="tag '+(m.overdue?'warn':'good')+'">'+N(m.overdue)+' کار عقب‌افتاده</span></div>'+
+ '<div class="stack"><div class="item"><span>پیش‌نویس منتظر بررسی</span><strong>'+N(m.pending_drafts)+'</strong></div>'+
+ '<div class="item"><span>مخاطب بدون موعد پیگیری</span><strong>'+N(m.unscheduled)+'</strong></div>'+
+ '<div class="item"><span>اقدام تکمیل‌شده ثبت‌شده</span><strong>'+N(m.completed_actions)+'</strong></div>'+
+ '<div class="item"><span>تبدیل مستقل تأییدشده</span><strong>'+N(m.converted_verified)+'</strong></div></div>'+
+ '<div class="formactions"><button class="btn ghost" data-view="analytics">تحلیل خروجی</button></div></section></div></div>';
+}
+
 function campaignCard(c){
  var total=data.contacts.filter(function(p){return p.campaign_id===c.id}).length;
  var sent=data.messages.filter(function(x){return x.campaign_id===c.id&&['manually_sent','sent','delivered'].includes(x.status)}).length;
