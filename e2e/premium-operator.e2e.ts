@@ -15,7 +15,7 @@ test('Premium operator journey: complete task and preserve audit; save views; CS
 
  await page.locator('[data-detail-tab="action"]').click();
  await expect(page.locator('#completeActionForm')).toBeVisible();
- await expect(page.locator('#completeActionForm')).toContainText('Send initial message');
+ await expect(page.locator('#drawerBody')).toContainText('Send initial message');
  await page.locator('#completeActionForm [name="next_action"]').fill('Review response tomorrow');
  await page.locator('#completeActionForm button[type="submit"]').click();
  await expect(page.locator('#drawerBody')).toContainText('Send initial message');
