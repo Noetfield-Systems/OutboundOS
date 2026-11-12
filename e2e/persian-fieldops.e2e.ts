@@ -52,6 +52,7 @@ test('Persian pilot: campaign → contact → draft → manual send → reply �
   await page.locator('#outcomeForm [name="summary"]').fill('Test conversion is a self-report; NOT independently verified.');
   await page.locator('#outcomeForm button[type="submit"]').click();
   await expect(page.locator('#drawerBody')).toContainText('conversion');
+  await expect(page.locator('#goalFraction')).toContainText('۰ / ۱۰'); // reported conversion is NOT a verified real user
 
   await page.locator('[data-detail-tab="handoff"]').click();
   await page.locator('#handoffForm [name="handoff_type"]').selectOption('human');
