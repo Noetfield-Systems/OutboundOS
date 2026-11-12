@@ -60,7 +60,7 @@ label{display:flex;flex-direction:column;gap:6px;font-size:11px;color:#b8c8d9;fo
   <button data-view="analytics"><span class="ico">▥</span>تبدیل و تحلیل</button>
   <button data-view="evidence"><span class="ico">◇</span>شواهد</button>
  </nav>
- <div class="sidefoot"><small>هدف مرحله نخست</small><div><span class="fraction" id="goalFraction">۰ / ۱۰</span></div><div class="bar"><span id="goalBar"></span></div><p>۱۰ مخاطب واقعی؛ پیشرفت صرفاً براساس داده ثبت‌شده و قابل مشاهده.</p></div>
+ <div class="sidefoot"><small>هدف مرحله نخست</small><div><span class="fraction" id="goalFraction">۰ / ۱۰</span></div><div class="bar"><span id="goalBar"></span></div><p>هدف: ۱۰ کاربر تبدیل‌شده با تأیید مستقل. صرف ثبت مخاطب موفقیت نهایی نیست.</p></div>
 </aside>
 <main>
  <div class="top"><div><div class="eyebrow">OUTREACH OPERATING SYSTEM</div><small>اجرای روزانه • تصمیم بعدی • سند • نتیجه</small></div>
@@ -105,7 +105,7 @@ async function load(){
  }catch(e){el('connection').textContent='ارتباط برقرار نشد';el('serverDot').style.background='#f18f97';el('screen').innerHTML='<div class="error">'+esc(e.message)+'</div><button class="btn primary" data-reload="1">تلاش دوباره</button>'}
 }
 function mCard(label,value,hint){return '<div class="metric"><div class="label">'+esc(label)+'</div><span class="value">'+N(value)+'</span><div class="hint">'+esc(hint||'')+'</div></div>'}
-function kpi(){var m=data.metrics;return '<div class="metrics">'+mCard('مخاطب ثبت‌شده',m.contacts,'هدف مرحله اول: ۱۰ نفر')+mCard('تماس انجام‌شده',m.contacted,'ارسال گزارش‌شده و provider')+mCard('پاسخ واقعی ثبت‌شده',m.replied,'از جمله '+N(m.provider_replies)+' پاسخ provider')+mCard('گفت‌وگوی رزروشده',m.booked,'جلسه ثبت‌شده / گزارش‌شده')+mCard('کاربر تبدیل‌شده',m.converted_reported,'تأیید مستقل: '+N(m.converted_verified))+'</div>'}
+function kpi(){var m=data.metrics;return '<div class="metrics">'+mCard('مخاطب ثبت‌شده',m.contacts,'سرنخ واقعی؛ هدف ۱۰ تبدیل تأییدشده')+mCard('تماس انجام‌شده',m.contacted,'ارسال گزارش‌شده و provider')+mCard('پاسخ واقعی ثبت‌شده',m.replied,'از جمله '+N(m.provider_replies)+' پاسخ provider')+mCard('گفت‌وگوی رزروشده',m.booked,'جلسه ثبت‌شده / گزارش‌شده')+mCard('کاربر تبدیل‌شده',m.converted_reported,'تأیید مستقل: '+N(m.converted_verified))+'</div>'}
 function heading(h,p,actions){return '<div class="pagehead"><div><div class="eyebrow">OUTBOUNDOS / OPERATIONS</div><h1>'+h+'</h1><p>'+p+'</p></div><div class="toolbar">'+(actions||'')+'</div></div>'}
 function empty(h,p,action){return '<div class="empty"><strong>'+h+'</strong><p>'+p+'</p>'+(action||'')+'</div>'}
 function statusTag(status){return '<span class="tag '+(status==='won'||status==='qualified'?'good':status==='needs_review'||status==='lost'?'warn':'')+'">'+esc(stages[status]||status)+'</span>'}
@@ -119,7 +119,7 @@ function today(){
  var stageNames={new:'مخاطب پیدا شده',contacted:'پیام ارسال‌شده',replied:'پاسخ دریافت‌شده',qualified:'واجد شرایط',booked:'گفت‌وگو',converted:'تبدیل گزارش‌شده'};
  var bar='<div class="funnel">'+Object.keys(stagesN).map(function(k){return '<div class="frow"><span>'+stageNames[k]+'</span><div class="track"><span style="width:'+Math.min(100,Math.round(stagesN[k]/Math.max(10,m.contacts,1)*100))+'%"></span></div><strong>'+N(stagesN[k])+'</strong></div>'}).join('')+'</div>';
  var items=all.length?'<div class="stack">'+all.map(function(c){return '<div class="item"><div><strong>'+contactLabel(c)+'</strong><p>'+esc(c.next_action||'اقدام بعدی هنوز تعیین نشده')+' · '+esc(c.owner||'Founder')+'</p><small>'+fmt(c.next_action_at)+'</small></div><button class="btn tiny" data-open="'+esc(c.id)+'">پیگیری</button></div>'}).join('')+'</div>':empty('صف امروز خالی است','مخاطب واقعی ثبت کنید و برای هر فرد اقدام بعدی و موعد مشخص بگذارید.');
- el('goalFraction').textContent=N(m.contacts)+' / ۱۰';el('goalBar').style.width=Math.min(100,m.contacts*10)+'%';
+ el('goalFraction').textContent=N(m.converted_verified)+' / ۱۰';el('goalBar').style.width=Math.min(100,m.converted_verified*10)+'%';
  return heading('میز عملیات امروز','از مخاطب واقعی تا نتیجه قابل سنجش؛ هر حرکت یک مسئول و اقدام بعدی دارد.','<button class="btn primary" data-new-contact="1">+ افزودن مخاطب</button>')+kpi()+
  '<div class="grid"><div><section class="panel"><div class="panelhead"><h2>صف پیگیری و اقدام بعدی</h2><span class="tag warn">'+N(m.overdue)+' موعد گذشته</span></div>'+items+'</section>'+
  '<section class="panel"><div class="panelhead"><h2>حرکت بعدی</h2></div><p>۱. کمپین و مخاطب هدف را تعریف کنید. ۲. پیام پیشنهادی بسازید. ۳. پیام واقعی ارسال‌شده را جداگانه ثبت کنید. ۴. پاسخ، qualification و handoff را ثبت و تاریخ پیگیری تعیین کنید.</p><div class="toolbar"><button class="btn" data-view="campaigns">کمپین‌ها</button><button class="btn" data-view="contacts">مخاطبان</button></div></section></div>'+
@@ -129,9 +129,10 @@ function today(){
 function campaignCard(c){
  var total=data.contacts.filter(function(p){return p.campaign_id===c.id}).length;
  var sent=data.messages.filter(function(x){return x.campaign_id===c.id&&['manually_sent','sent','delivered'].includes(x.status)}).length;
+ var replied=new Set(data.messages.filter(function(x){return x.campaign_id===c.id&&x.direction==='inbound'&&['received','reported_received'].includes(x.status)}).map(function(x){return x.prospect_id})).size;
  return '<article class="campaign"><div class="panelhead"><h3>'+esc(c.name)+'</h3><span class="tag '+(c.status==='active'?'good':'')+'">'+esc(c.status==='active'?'فعال':c.status==='draft'?'پیش‌نویس':'متوقف')+'</span></div>'+
  '<p>'+esc(c.target_audience||'مخاطب هدف هنوز تعریف نشده')+'</p><div class="meta"><span class="tag">'+esc(channels[c.channel]||c.channel||'ایمیل')+'</span> <span class="tag">مالک: '+esc(c.owner||'Founder')+'</span></div>'+
- '<p style="margin-top:12px">هدف: '+esc(c.goal||'—')+'<br>منبع: '+esc(c.source||'—')+'</p><div><small>'+N(total)+' مخاطب متصل · '+N(sent)+' ارسال ثبت‌شده</small></div>'+
+ '<p style="margin-top:12px">هدف: '+esc(c.goal||'—')+'<br>منبع: '+esc(c.source||'—')+'</p><div><small>'+N(total)+' مخاطب متصل · '+N(sent)+' ارسال ثبت‌شده · '+N(replied)+' پاسخ یکتا · '+N(sent?Math.round(100*replied/sent):0)+'٪ نرخ پاسخ پیام</small></div>'+
  '<div class="actions"><button class="btn tiny" data-campaign-edit="'+esc(c.id)+'">ویرایش</button><button class="btn tiny" data-campaign-toggle="'+esc(c.id)+'" data-active="'+esc(c.status)+'">'+(c.status==='active'?'توقف':'فعال‌سازی')+'</button><button class="btn tiny" data-campaign-filter="'+esc(c.id)+'">مخاطبان کمپین</button></div></article>'
 }
 function campaigns(){
@@ -212,7 +213,7 @@ function evidences(){
 function render(){
  if(!data)return;
  document.querySelectorAll('[data-view]').forEach(function(n){if(n.closest('#nav'))n.classList.toggle('active',n.getAttribute('data-view')===view)});
- el('goalFraction').textContent=N(data.metrics.contacts)+' / ۱۰';el('goalBar').style.width=Math.min(100,data.metrics.contacts*10)+'%';
+ el('goalFraction').textContent=N(data.metrics.converted_verified)+' / ۱۰';el('goalBar').style.width=Math.min(100,data.metrics.converted_verified*10)+'%';
  el('screen').innerHTML=view==='campaigns'?campaigns():view==='contacts'?contacts():view==='inbox'?inbox():view==='analytics'?analytics():view==='evidence'?evidences():today()
 }
 function openDrawer(title,html){el('drawerTitle').textContent=title;el('drawerBody').innerHTML=html;el('drawerBack').classList.add('open');document.body.style.overflow='hidden'}
