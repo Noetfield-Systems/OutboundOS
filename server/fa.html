@@ -281,6 +281,7 @@ function mCard(label,value,hint){return '<div class="metric"><div class="label">
 function kpi(){var m=data.metrics;return '<div class="metrics">'+mCard('مخاطب ثبت‌شده',m.contacts,'سرنخ واقعی؛ هدف ۱۰ تبدیل تأییدشده')+mCard('تماس انجام‌شده',m.contacted,'ارسال گزارش‌شده و provider')+mCard('پاسخ واقعی ثبت‌شده',m.replied,'از جمله '+N(m.provider_replies)+' پاسخ provider')+mCard('گفت‌وگوی رزروشده',m.booked,'جلسه ثبت‌شده / گزارش‌شده')+mCard('کاربر تبدیل‌شده',m.converted_reported,'تأیید مستقل: '+N(m.converted_verified))+'</div>'}
 function heading(h,p,actions){return '<div class="pagehead"><div><div class="eyebrow">OUTBOUNDOS / OPERATIONS</div><h1>'+h+'</h1><p>'+p+'</p></div><div class="toolbar">'+(actions||'')+'</div></div>'}
 function empty(h,p,action){return '<div class="empty"><strong>'+h+'</strong><p>'+p+'</p>'+(action||'')+'</div>'}
+function safeHref(v){try{var url=new URL(String(v||''));return url.protocol==='https:'||url.protocol==='http:'?url.href:''}catch(err){return ''}}
 function proofLabel(v){return {self_reported:'ثبت اپراتور؛ بدون تأیید مستقل',unverified:'تأییدنشده',independent_verified:'تأیید مستقل',system:'ثبت سیستم',provider:'تأیید ارائه‌دهنده'}[v]||v}
 function statusTag(status){return '<span class="tag '+(status==='won'||status==='qualified'?'good':status==='needs_review'||status==='lost'?'warn':'')+'">'+esc(stages[status]||status)+'</span>'}
 function contactLabel(c){return esc(c.name||c.company)+' <small> · '+esc(c.company)+'</small>'}
@@ -680,8 +681,10 @@ async function previewCsvFile(file){
 function draw(force){
  var c=data.contacts.find(function(x){return x.id===selected});if(!c){closeDrawer();return}
  var tabs={activity:'تاریخچه',profile:'پرونده',action:'انجام کار',draft:'پیشنویس',confirm:'ثبت ارسال',reply:'ثبت پاسخ',outcome:'نتیجه',handoff:'ارجاع',proof:'افزودن سند'};
+ var link=safeHref(c.source_url),mail=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email||'')?c.email:'';
+ var contactActions='<div class="toolbar section-gap">'+(link?'<a class="btn tiny" href="'+esc(link)+'" target="_blank" rel="noopener noreferrer">بازکردن پروفایل ↗</a>':'')+(mail?'<a class="btn tiny" href="mailto:'+esc(mail)+'">ارسال ایمیل ↗</a>':'')+'</div>';
  var top='<div class="drawersection"><p>'+esc(c.company)+' · '+esc(c.title||'')+' · '+statusTag(c.status)+'</p>'+
- '<div class="toolbar"><span class="tag">مسئول: '+esc(c.owner||'Founder')+'</span><span class="tag">اقدام بعدی: '+esc(c.next_action||'—')+'</span><span class="tag">'+fmt(c.next_action_at)+'</span></div></div>'+
+ '<div class="toolbar"><span class="tag">مسئول: '+esc(c.owner||'Founder')+'</span><span class="tag">اقدام بعدی: '+esc(c.next_action||'—')+'</span><span class="tag">'+fmt(c.next_action_at)+'</span></div>'+contactActions+'</div>'+
  '<div class="drawersection tabs">'+Object.keys(tabs).map(function(k){return '<button class="'+(detailTab===k?'active':'')+'" data-detail-tab="'+k+'">'+tabs[k]+'</button>'}).join('')+'</div>';
  var body=detailTab==='profile'?'<div class="panel">'+detailForm(c)+'</div>':detailTab==='action'?actionPane(c):
  detailTab==='draft'?draftPane(c):detailTab==='confirm'?confirmPane(c,force):
