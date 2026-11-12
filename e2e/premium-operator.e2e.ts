@@ -17,7 +17,9 @@ test('Premium operator journey: complete task and preserve audit; save views; CS
  await expect(page.locator('#completeActionForm')).toBeVisible();
  await expect(page.locator('#drawerBody')).toContainText('Send initial message');
  await page.locator('#completeActionForm [name="next_action"]').fill('Review response tomorrow');
- await page.locator('#completeActionForm button[type="submit"]').click();
+ const [actionResponse]=await Promise.all([page.waitForResponse(r=>r.url().includes('/api/fa/actions/complete')),page.locator('#completeActionForm button[type="submit"]').click()]);
+ const actionPayload=await actionResponse.json();
+ expect(actionResponse.status(),JSON.stringify(actionPayload)).toBe(200);
  await expect(page.locator('#drawerBody')).toContainText('Send initial message');
  await expect(page.locator('#drawerBody')).toContainText('Review response tomorrow');
  const state=await (await page.request.get('/api/fa/state')).json();
