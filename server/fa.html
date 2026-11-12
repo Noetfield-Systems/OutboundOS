@@ -554,7 +554,7 @@ function contactActivity(c){
  var actionHistory=actions.length?'<div class="panel"><div class="panelhead"><h2>کارهای واقعاً تکمیل‌شده</h2><span class="tag">'+N(actions.length)+' ثبت</span></div><div class="timeline">'+
  actions.map(function(a){return '<div class="event"><h3>تکمیل: '+esc(a.action_text)+'</h3><small>'+fmt(a.completed_at)+' · '+esc(a.actor)+'</small>'+
  '<p>اقدام بعدی: '+esc(a.next_action||'تعیین نشده')+' · '+fmt(a.next_action_at)+'</p></div>'}).join('')+'</div></div>':'';
- return '<div class="panel"><h2>تاریخچه پیام و پاسخ</h2>'+(mm.length?'<div class="timeline">'+list+'</div>':empty('هیچ پیامی ثبت نشده','از تب «پیشنویس» پیام شخصی‌سازی‌شده بسازید.'))+'</div>'+
+ return '<div class="panel"><h2>تاریخچه پیام و پاسخ</h2>'+(mm.length?'<div class="timeline">'+list+'</div>':empty('هیچ پیامی ثبت نشده','از تب «پیشنویس» پیام شخصی‌سازی‌شده بسازید.'))+'</div>'+actionHistory+
  '<div class="panel"><h2>شواهد این مخاطب</h2>'+(ev.length?'<div class="stack">'+ev.map(function(e){return '<div class="event"><strong>'+esc(e.kind)+'</strong><p>'+esc(e.summary)+'</p><small>'+esc(e.verification)+' · '+fmt(e.created_at)+'</small></div>'}).join('')+'</div>':empty('هنوز سندی وجود ندارد','ثبت پاسخ، ارسال دستی و نتیجه، سند گزارش‌شده ایجاد می‌کند.'))+'</div>';
 }
 function draftPane(c){
