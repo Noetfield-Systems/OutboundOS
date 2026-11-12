@@ -248,7 +248,7 @@ body.light .lead-tile:hover{background:#eaf5f5}
 <script>
 (function(){
 'use strict';
-var data=null,view='today',selected=null,detailTab='activity',filters={text:'',stage:'',owner:'',campaign:'',due:'all',sort:'due'},busy=false,todayFilter='due',boardMode='table',importPreview=null,previousFocus=null;
+var data=null,view='today',selected=null,detailTab='activity',filters={text:'',stage:'',owner:'',campaign:'',due:'all',sort:'due'},busy=false,todayFilter='due',boardMode='table',importPreview=null,previousFocus=null,submittingForms=new WeakSet();
 var stages={new:'تازه',research:'در پژوهش',qualified:'واجد شرایط',contacted:'تماس گرفته',replied:'پاسخ داده',meeting:'جلسه',won:'تبدیل‌شده (گزارش)',lost:'ناموفق',unsubscribed:'عدم تماس',needs_review:'نیازمند بررسی',sending:'در حال ارسال'};
 var channels={email:'ایمیل',linkedin:'لینکدین',phone:'تلفن',whatsapp:'واتس‌اپ',telegram:'تلگرام',instagram:'اینستاگرام',website:'وب‌سایت',in_person:'حضوری',other:'سایر'};
 var outcomes={qualified:'واجد شرایط',booked:'گفت‌وگوی رزروشده',converted:'کاربر تبدیل‌شده',lost:'بدون نتیجه',not_fit:'نامتناسب',pending:'در انتظار'};
@@ -692,7 +692,7 @@ function draw(force){
 async function submit(e){
  var f=e.target;if(!f||!f.id)return;
  var handled=['contactForm','campaignForm','campaignEditForm','detailForm','draftForm','sendForm','replyForm','outcomeForm','handoffForm','evidenceForm','completeActionForm','savedViewForm','importCsvForm'];
- if(!handled.includes(f.id))return;e.preventDefault();if(busy)return;busy=true;
+ if(!handled.includes(f.id))return;e.preventDefault();if(submittingForms.has(f))return;submittingForms.add(f);
  var btn=f.querySelector('[type=submit]');if(btn)btn.disabled=true;
  try{
   var b=formObj(f),path='',method='POST';
@@ -714,7 +714,7 @@ async function submit(e){
   toast('اطلاعات با موفقیت در PostgreSQL ذخیره شد'+(result.verification?' · وضعیت: '+result.verification:''));
   await load();
  }catch(err){toast(err.message,true)}
- finally{busy=false;if(btn)btn.disabled=false}
+ finally{submittingForms.delete(f);if(btn)btn.disabled=false}
 }
 function downloadCSV(){
  var keys=['name','company','email','title','status','owner','source','channel','campaign_id','match_quality','next_action','next_action_at','response_summary','outcome','evidence_url'];
