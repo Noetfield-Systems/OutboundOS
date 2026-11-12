@@ -493,8 +493,8 @@ function render(){
  el('goalFraction').textContent=N(data.metrics.converted_verified)+' / ۱۰';el('goalBar').style.width=Math.min(100,data.metrics.converted_verified*10)+'%';
  el('screen').innerHTML=view==='campaigns'?campaigns():view==='contacts'?contacts():view==='inbox'?inbox():view==='analytics'?analytics():view==='evidence'?evidences():today()
 }
-function openDrawer(title,html){el('drawerTitle').textContent=title;el('drawerBody').innerHTML=html;el('drawerBack').classList.add('open');document.body.style.overflow='hidden'}
-function closeDrawer(){el('drawerBack').classList.remove('open');document.body.style.overflow='';selected=null}
+function openDrawer(title,html){previousFocus=document.activeElement;el('drawerTitle').textContent=title;el('drawerBody').innerHTML=html;el('drawerBack').classList.add('open');document.body.style.overflow='hidden';setTimeout(function(){var f=el('drawerBody').querySelector('[autofocus]')||el('drawerBack').querySelector('[data-close]');if(f)f.focus()},0)}
+function closeDrawer(){el('drawerBack').classList.remove('open');document.body.style.overflow='';selected=null;if(previousFocus&&previousFocus.isConnected&&typeof previousFocus.focus==='function')previousFocus.focus()}
 function newContact(){selected=null;openDrawer('ثبت مخاطب واقعی','<div class="drawersection panel"><h2>شناسایی و اقدام بعدی</h2><p>اطلاعات واقعی وارد کنید؛ نمونه یا پروفایل ساختگی افزوده نمی‌شود.</p>'+contactForm()+'</div>')}
 function editCampaign(cid){
  var c=data.campaigns.find(function(x){return x.id===cid});if(!c)return;
@@ -702,6 +702,14 @@ function downloadCSV(){
 async function click(e){
  var t=e.target.closest('button,[data-open]');if(!t)return;
  if(t.dataset.close){closeDrawer();return}
+ if(t.dataset.theme){document.body.classList.toggle('light');try{localStorage.setItem('outboundos-theme',document.body.classList.contains('light')?'light':'dark')}catch(err){};return}
+ if(t.dataset.todayFilter){todayFilter=t.dataset.todayFilter;render();return}
+ if(t.dataset.board){boardMode=t.dataset.board;render();return}
+ if(t.dataset.clearFilter){filters={text:'',stage:'',owner:'',campaign:'',due:'all',sort:'due'};render();return}
+ if(t.dataset.actionDone){selected=t.dataset.actionDone;detailTab='action';draw();return}
+ if(t.dataset.import){importDrawer();return}
+ if(t.dataset.saveView){savedViewDrawer();return}
+ if(t.dataset.deleteView){if(busy)return;busy=true;try{await api('/api/fa/views/'+t.dataset.deleteView,'DELETE');toast('نمای ذخیره‌شده حذف شد؛ مخاطبان تغییری نکردند.');await load()}catch(err){toast(err.message,true)}finally{busy=false}return}
  if(t.dataset.newContact){newContact();return}
  if(t.dataset.reload){load();return}
  if(t.dataset.export){downloadCSV();return}
@@ -719,9 +727,34 @@ async function click(e){
 document.addEventListener('click',click);
 document.addEventListener('submit',submit);
 document.addEventListener('input',function(e){if(e.target.id==='filterText'){filters.text=e.target.value;var x=document.activeElement,at=x.selectionStart;render();var y=el('filterText');if(y){y.focus();y.setSelectionRange(at,at)}}});
-document.addEventListener('change',function(e){if(e.target.id==='filterStage'){filters.stage=e.target.value;render()}if(e.target.id==='filterOwner'){filters.owner=e.target.value;render()}if(e.target.id==='filterCampaign'){filters.campaign=e.target.value;render()}});
+document.addEventListener('change',async function(e){
+ var target=e.target;
+ if(target.id==='filterStage'){filters.stage=target.value;render()}
+ if(target.id==='filterOwner'){filters.owner=target.value;render()}
+ if(target.id==='filterCampaign'){filters.campaign=target.value;render()}
+ if(target.id==='filterDue'){filters.due=target.value;render()}
+ if(target.id==='filterSort'){filters.sort=target.value;render()}
+ if(target.id==='savedViewSelect'&&target.value){
+  var v=(data.saved_views||[]).find(function(x){return x.id===target.value});
+  if(v){filters=Object.assign({text:'',stage:'',owner:'',campaign:'',due:'all',sort:'due'},v.filters);render();toast('نمای '+v.name+' اعمال شد.')}
+ }
+ if(target.id==='importCsvFile'){
+  try{await previewCsvFile(target.files&&target.files[0])}
+  catch(err){importPreview=null;var submit=el('importSubmit');if(submit)submit.disabled=true;el('importPreview').innerHTML='<div class="error">'+esc(err.message)+'</div>';toast(err.message,true)}
+ }
+});
 el('drawerBack').addEventListener('click',function(e){if(e.target===this)closeDrawer()});
-document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDrawer()});
+document.addEventListener('keydown',function(e){
+ if(e.key==='Escape'&&el('drawerBack').classList.contains('open')){closeDrawer();return}
+ if((e.key==='Enter'||e.key===' ')&&e.target.matches('tr[data-open],.lead-tile[data-open]')){
+  e.preventDefault();selected=e.target.getAttribute('data-open');detailTab='activity';draw();return
+ }
+ if(e.ctrlKey||e.metaKey||e.altKey||e.target.closest('input,textarea,select,[contenteditable]'))return;
+ if(e.key==='/'&&view==='contacts'){e.preventDefault();el('filterText')?.focus();return}
+ if(e.key==='n'||e.key==='N'){e.preventDefault();newContact();return}
+ if(e.key==='g'){e.preventDefault();view='today';render()}
+});
+try{if(localStorage.getItem('outboundos-theme')==='light')document.body.classList.add('light')}catch(err){}
 load();
 })();
 </script>
