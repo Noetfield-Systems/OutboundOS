@@ -69,6 +69,9 @@ export async function initFieldOps(db:DB){
   await db.unsafe("CREATE TABLE IF NOT EXISTS os_field_evidence (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, prospect_id TEXT NOT NULL DEFAULT '', campaign_id TEXT NOT NULL DEFAULT '', message_id TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL, summary TEXT NOT NULL, source TEXT NOT NULL DEFAULT '', reference TEXT NOT NULL DEFAULT '', verification TEXT NOT NULL DEFAULT 'self_reported', created_at TIMESTAMPTZ NOT NULL DEFAULT now())");
   await db.unsafe("CREATE INDEX IF NOT EXISTS os_field_evidence_workspace ON os_field_evidence(workspace_id,created_at DESC)");
   await db.unsafe("CREATE INDEX IF NOT EXISTS os_field_action_queue ON os_prospects(workspace_id,next_action_at) WHERE next_action_at IS NOT NULL");
+  await db.unsafe("CREATE TABLE IF NOT EXISTS os_field_completed_actions (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, prospect_id TEXT NOT NULL, action_text TEXT NOT NULL, due_at TIMESTAMPTZ, next_action TEXT NOT NULL DEFAULT '', next_action_at TIMESTAMPTZ, actor TEXT NOT NULL DEFAULT 'Founder', completed_at TIMESTAMPTZ NOT NULL DEFAULT now())");
+  await db.unsafe("CREATE INDEX IF NOT EXISTS os_field_completed_actions_workspace ON os_field_completed_actions(workspace_id,completed_at DESC)");
+  await db.unsafe("CREATE TABLE IF NOT EXISTS os_field_saved_views (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, name TEXT NOT NULL, filters JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), UNIQUE(workspace_id,name))");
 }
 function personalize(template:string,p:any,w:any) {
   const values:any = {
@@ -84,30 +87,111 @@ export async function handleFieldOps(req:Request,db:DB,w:string,api:string,parse
   const parts=api.slice(3).split("/");
   const [resource,resourceId,action]=parts;
   if(resource==="state"&&method==="GET"){
-    const [contacts,campaigns,messages,proof,meetings,workspace]=await Promise.all([
+    const [contacts,campaigns,messages,proof,meetings,workspace,completedActions,savedViews]=await Promise.all([
       db.unsafe("SELECT * FROM os_prospects WHERE workspace_id=$1 ORDER BY created_at DESC LIMIT 1000",[w]),
       db.unsafe("SELECT * FROM os_campaigns WHERE workspace_id=$1 ORDER BY created_at DESC LIMIT 100",[w]),
       db.unsafe("SELECT * FROM os_messages WHERE workspace_id=$1 ORDER BY created_at DESC LIMIT 1500",[w]),
       db.unsafe("SELECT * FROM os_field_evidence WHERE workspace_id=$1 ORDER BY created_at DESC LIMIT 1500",[w]),
       db.unsafe("SELECT * FROM os_meetings WHERE workspace_id=$1 ORDER BY when_at DESC LIMIT 250",[w]),
-      db.unsafe("SELECT id,name,offer,icp,calendly,saved FROM os_workspaces WHERE id=$1",[w])
+      db.unsafe("SELECT id,name,offer,icp,calendly,saved FROM os_workspaces WHERE id=$1",[w]),
+      db.unsafe("SELECT * FROM os_field_completed_actions WHERE workspace_id=$1 ORDER BY completed_at DESC LIMIT 500",[w]),
+      db.unsafe("SELECT * FROM os_field_saved_views WHERE workspace_id=$1 ORDER BY created_at ASC LIMIT 30",[w])
     ]);
     const touched=new Set(messages.filter((m:any)=>m.direction==="outbound"&&["manually_sent","sent","delivered","unknown"].includes(m.status)).map((m:any)=>m.prospect_id));
     const responded=new Set(messages.filter((m:any)=>m.direction==="inbound"&&["received","reported_received"].includes(m.status)).map((m:any)=>m.prospect_id));
     const providerReplies=new Set(messages.filter((m:any)=>m.direction==="inbound"&&m.status==="received").map((m:any)=>m.prospect_id));
+    const repliedToSent=new Set([...responded].filter(pid=>touched.has(pid)));
+    const dueNow=contacts.filter((c:any)=>c.next_action_at&&new Date(c.next_action_at).getTime()<=Date.now()&&!["won","lost","unsubscribed"].includes(c.status));
+    const unplanned=contacts.filter((c:any)=>!c.next_action_at&&!["won","lost","unsubscribed"].includes(c.status));
+    const pendingDrafts=messages.filter((m:any)=>m.status==="draft"&&m.kind==="manual").length;
     const booked=new Set(meetings.map((m:any)=>m.prospect_id));
     contacts.forEach((c:any)=>{if(c.outcome==="booked"||c.status==="meeting")booked.add(c.id)});
     const qualified=contacts.filter((c:any)=>["qualified","meeting","won"].includes(c.status)||c.outcome==="qualified");
     const outcomeReported=contacts.filter((c:any)=>c.outcome==="converted"||c.status==="won").length;
     const independentlyVerified=new Set(proof.filter((p:any)=>p.kind==="conversion"&&p.verification==="independent_verified").map((p:any)=>p.prospect_id));
     return reply({
-      workspace:workspace[0],contacts,campaigns,messages,evidence:proof,meetings,
+      workspace:workspace[0],contacts,campaigns,messages,evidence:proof,meetings,completed_actions:completedActions,saved_views:savedViews,
       metrics:{goal:10,contacts:contacts.length,contacted:touched.size,replied:responded.size,
-        provider_replies:providerReplies.size,reply_rate:touched.size?Math.round(100*responded.size/touched.size):0,
+        provider_replies:providerReplies.size,reply_rate:touched.size?Math.round(100*repliedToSent.size/touched.size):0,
         booked:booked.size,qualified:qualified.length,converted_reported:outcomeReported,
         converted_verified:independentlyVerified.size,
-        overdue:contacts.filter((c:any)=>c.next_action_at&&new Date(c.next_action_at)<new Date()&&!["won","lost","unsubscribed"].includes(c.status)).length}
+        overdue:dueNow.length,unscheduled:unplanned.length,pending_drafts:pendingDrafts,
+        completed_actions:completedActions.length}
     });
+  }
+
+  if(resource==="actions"&&resourceId==="complete"&&method==="POST"){
+    const b=await parse(req),pid=clean(b.prospect_id,80),next=clean(b.next_action,400),nextAt=iso(b.next_action_at);
+    if(b.next_action_at&&!nextAt)return error("زمان پیگیری بعدی معتبر نیست.");
+    const expected=clean(b.expected_action,400),expectedDate=iso(b.expected_due_at);
+    let completed:any=null;
+    await db.begin(async (tx:any)=>{
+      const p=(await tx.unsafe("SELECT id,owner,next_action,next_action_at,status FROM os_prospects WHERE workspace_id=$1 AND id=$2 FOR UPDATE",[w,pid]))[0];
+      if(!p)throw new Error("CONTACT_NOT_FOUND");
+      if(["won","lost","unsubscribed"].includes(p.status))throw new Error("CONTACT_CLOSED");
+      if(!p.next_action)throw new Error("NO_PENDING_ACTION");
+      if(p.next_action!==expected||(p.next_action_at?new Date(p.next_action_at).toISOString():null)!==(expectedDate||null))throw new Error("ACTION_CHANGED");
+      const actionId=id();
+      await tx.unsafe("INSERT INTO os_field_completed_actions(id,workspace_id,prospect_id,action_text,due_at,next_action,next_action_at,actor) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
+        [actionId,w,pid,p.next_action,p.next_action_at,next,nextAt,p.owner||"Founder"]);
+      await tx.unsafe("UPDATE os_prospects SET next_action=$3,next_action_at=$4 WHERE workspace_id=$1 AND id=$2",[w,pid,next,nextAt]);
+      completed={id:actionId,completed:p.next_action,next_action:next};
+    }).catch((e:any)=>{
+      const msg=String(e?.message||e);
+      if(msg==="CONTACT_NOT_FOUND")throw Object.assign(new Error("مخاطب پیدا نشد."),{safeStatus:404});
+      if(msg==="CONTACT_CLOSED")throw Object.assign(new Error("پرونده بسته است؛ امکان تکمیل کار باز وجود ندارد."),{safeStatus:409});
+      if(msg==="NO_PENDING_ACTION")throw Object.assign(new Error("اقدام بعدی ثبت نشده است."),{safeStatus:409});
+      if(msg==="ACTION_CHANGED")throw Object.assign(new Error("این اقدام هم‌زمان تغییر کرده؛ پرونده را تازه‌سازی کنید."),{safeStatus:409});
+      throw e;
+    });
+    await audit(db,w,"fa_action_done","اقدام واقعی تکمیل شد؛ اقدام بعدی: "+(next||"تعیین نشده"));
+    return reply({ok:true,...completed});
+  }
+  if(resource==="views"&&method==="POST"&&!resourceId){
+    const b=await parse(req),name=clean(b.name,65),v=b.filters;
+    if(name.length<2||!v||typeof v!=="object"||Array.isArray(v))return error("نام نما و فیلترها معتبر نیست.");
+    const state:any={};
+    for(const k of ["text","stage","owner","campaign","due","sort"])state[k]=clean(v[k],120);
+    if(state.stage&&!allowedStages.includes(state.stage))return error("مرحله نامعتبر است.");
+    if(state.due&&!["overdue","today","week","unscheduled","all"].includes(state.due))return error("فیلتر موعد نامعتبر است.");
+    if(state.sort&&!["due","recent","match","name"].includes(state.sort))return error("مرتب‌سازی نامعتبر است.");
+    const count=(await db.unsafe("SELECT count(*)::int n FROM os_field_saved_views WHERE workspace_id=$1",[w]))[0]?.n||0;
+    if(count>=30)return error("حداکثر ۳۰ نمای ذخیره‌شده.");
+    try{
+      const viewId=id();
+      await db.unsafe("INSERT INTO os_field_saved_views(id,workspace_id,name,filters) VALUES($1,$2,$3,$4::jsonb)",[viewId,w,name,JSON.stringify(state)]);
+      return reply({ok:true,id:viewId,name},201);
+    }catch(e:any){
+      if(String(e?.code)==="23505")return error("این نام نما قبلاً استفاده شده است.",409);
+      throw e;
+    }
+  }
+  if(resource==="views"&&resourceId&&method==="DELETE"){
+    const found=await db.unsafe("DELETE FROM os_field_saved_views WHERE workspace_id=$1 AND id=$2 RETURNING id",[w,resourceId]);
+    return found.length?reply({ok:true}):error("نمای ذخیره‌شده پیدا نشد.",404);
+  }
+  if(resource==="contacts"&&resourceId==="import"&&method==="POST"){
+    const b=await parse(req),rows=b.rows;
+    if(!Array.isArray(rows)||rows.length<1||rows.length>100)return error("در هر بار ۱ تا ۱۰۰ مخاطب معتبر وارد کنید.");
+    const existing=(await db.unsafe("SELECT count(*)::int n FROM os_prospects WHERE workspace_id=$1",[w]))[0]?.n||0;
+    if(existing+rows.length>1000)return error("سقف مخاطبان فضای کاری: ۱۰۰۰.");
+    let added=0,duplicate=0,invalid=0;
+    for(const c of rows){
+      if(!c||typeof c!=="object"||Array.isArray(c)){invalid++;continue}
+      const name=clean(c.name,150),company=clean(c.company,200),email=clean(c.email,250).toLowerCase();
+      if((!name&&!company)||(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))){invalid++;continue}
+      const match=c.match_quality===""||c.match_quality==null?null:Number(c.match_quality);
+      if(match!==null&&(!Number.isInteger(match)||match<0||match>100)){invalid++;continue}
+      const actionAt=iso(c.next_action_at);
+      if(c.next_action_at&&!actionAt){invalid++;continue}
+      const campaign=clean(c.campaign_id,80);
+      if(campaign&&!(await db.unsafe("SELECT 1 FROM os_campaigns WHERE workspace_id=$1 AND id=$2",[w,campaign])).length){invalid++;continue}
+      const inserted=await db.unsafe("INSERT INTO os_prospects(id,workspace_id,company,name,email,title,source,source_url,signal,consent_basis,status,score,unsub_token,owner,next_action,next_action_at,match_quality,channel,campaign_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'new',50,$11,$12,$13,$14,$15,$16,$17) ON CONFLICT DO NOTHING RETURNING id",
+      [id(),w,company||name,name,email||null,clean(c.title,150),clean(c.source,80)||"csv-import",validUrl(c.source_url),clean(c.signal,600),clean(c.consent_basis,850),id(),clean(c.owner,120)||"Founder",clean(c.next_action,400),actionAt,match,validChannel(clean(c.channel,35)),campaign]);
+      if(inserted.length)added++;else duplicate++;
+    }
+    await audit(db,w,"fa_bulk_import","ورود CSV: "+added+" ثبت‌شده، "+duplicate+" تکراری، "+invalid+" نامعتبر.");
+    return reply({ok:true,added,duplicate,invalid,total:rows.length});
   }
   if(resource==="campaigns"&&method==="POST"&&!resourceId){
     const b=await parse(req),name=clean(b.name,200),subject=clean(b.subject,270),body=clean(b.body,5500);
