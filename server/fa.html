@@ -281,6 +281,7 @@ function mCard(label,value,hint){return '<div class="metric"><div class="label">
 function kpi(){var m=data.metrics;return '<div class="metrics">'+mCard('مخاطب ثبت‌شده',m.contacts,'سرنخ واقعی؛ هدف ۱۰ تبدیل تأییدشده')+mCard('تماس انجام‌شده',m.contacted,'ارسال گزارش‌شده و provider')+mCard('پاسخ واقعی ثبت‌شده',m.replied,'از جمله '+N(m.provider_replies)+' پاسخ provider')+mCard('گفت‌وگوی رزروشده',m.booked,'جلسه ثبت‌شده / گزارش‌شده')+mCard('کاربر تبدیل‌شده',m.converted_reported,'تأیید مستقل: '+N(m.converted_verified))+'</div>'}
 function heading(h,p,actions){return '<div class="pagehead"><div><div class="eyebrow">OUTBOUNDOS / OPERATIONS</div><h1>'+h+'</h1><p>'+p+'</p></div><div class="toolbar">'+(actions||'')+'</div></div>'}
 function empty(h,p,action){return '<div class="empty"><strong>'+h+'</strong><p>'+p+'</p>'+(action||'')+'</div>'}
+function proofLabel(v){return {self_reported:'ثبت اپراتور؛ بدون تأیید مستقل',unverified:'تأییدنشده',independent_verified:'تأیید مستقل',system:'ثبت سیستم',provider:'تأیید ارائه‌دهنده'}[v]||v}
 function statusTag(status){return '<span class="tag '+(status==='won'||status==='qualified'?'good':status==='needs_review'||status==='lost'?'warn':'')+'">'+esc(stages[status]||status)+'</span>'}
 function contactLabel(c){return esc(c.name||c.company)+' <small> · '+esc(c.company)+'</small>'}
 
@@ -359,8 +360,9 @@ function today(){
 
 function campaignCard(c){
  var total=data.contacts.filter(function(p){return p.campaign_id===c.id}).length;
- var sent=data.messages.filter(function(x){return x.campaign_id===c.id&&['manually_sent','sent','delivered'].includes(x.status)}).length;
- var replied=new Set(data.messages.filter(function(x){return x.campaign_id===c.id&&x.direction==='inbound'&&['received','reported_received'].includes(x.status)}).map(function(x){return x.prospect_id})).size;
+ var sentIds=new Set(data.messages.filter(function(x){return x.campaign_id===c.id&&x.direction==='outbound'&&['manually_sent','sent','delivered','unknown'].includes(x.status)}).map(function(x){return x.prospect_id}));
+ var replied=new Set(data.messages.filter(function(x){return x.campaign_id===c.id&&sentIds.has(x.prospect_id)&&x.direction==='inbound'&&['received','reported_received'].includes(x.status)}).map(function(x){return x.prospect_id})).size;
+ var sent=sentIds.size;
  return '<article class="campaign"><div class="panelhead"><h3>'+esc(c.name)+'</h3><span class="tag '+(c.status==='active'?'good':'')+'">'+esc(c.status==='active'?'فعال':c.status==='draft'?'پیش‌نویس':'متوقف')+'</span></div>'+
  '<p>'+esc(c.target_audience||'مخاطب هدف هنوز تعریف نشده')+'</p><div class="meta"><span class="tag">'+esc(channels[c.channel]||c.channel||'ایمیل')+'</span> <span class="tag">مالک: '+esc(c.owner||'Founder')+'</span></div>'+
  '<p style="margin-top:12px">هدف: '+esc(c.goal||'—')+'<br>منبع: '+esc(c.source||'—')+'</p><div><small>'+N(total)+' مخاطب متصل · '+N(sent)+' ارسال ثبت‌شده · '+N(replied)+' پاسخ یکتا · '+N(sent?Math.round(100*replied/sent):0)+'٪ نرخ پاسخ پیام</small></div>'+
@@ -502,7 +504,7 @@ function evidences(){
  return heading('دفتر شواهد','پیشنویس، ادعای ارسال، پاسخ، نتیجه و تأیید مستقل هرکدام وضعیت مستقل خود را دارند.')+
  '<div class="notice">هر سندی که دستی وارد می‌شود «گزارش‌شده / تأییدنشده» باقی می‌ماند. فقط receipt معتبر از verifier مستقل می‌تواند نتیجه را تأییدشده کند؛ پیوند ادعایی چنین تأییدی ایجاد نمی‌کند.</div>'+
  '<section class="panel"><div class="panelhead"><h2>زنجیره شواهد</h2><span class="tag">'+N(rows.length)+' رکورد</span></div>'+
- (rows.length?'<div class="stack">'+rows.map(function(e){var c=data.contacts.find(function(x){return x.id===e.prospect_id});return '<div class="item"><div><strong>'+esc(e.kind)+' · '+esc(c?c.name||c.company:'—')+'</strong><p>'+esc(e.summary)+'</p><small>'+fmt(e.created_at)+' · '+esc(e.source)+' · '+esc(e.verification)+'</small> '+(e.reference?'<a href="'+esc(e.reference)+'" target="_blank" rel="noopener noreferrer">مشاهده منبع</a>':'')+'</div>'+(c?'<button class="btn tiny" data-open="'+esc(c.id)+'">پرونده</button>':'')+'</div>'}).join('')+'</div>':empty('مدرکی ثبت نشده','پس از ثبت پیام، پاسخ یا نتیجه، شواهد در این دفتر ظاهر می‌شوند.'))+'</section>';
+ (rows.length?'<div class="stack">'+rows.map(function(e){var c=data.contacts.find(function(x){return x.id===e.prospect_id});return '<div class="item"><div><strong>'+esc(e.kind)+' · '+esc(c?c.name||c.company:'—')+'</strong><p>'+esc(e.summary)+'</p><small>'+fmt(e.created_at)+' · '+esc(e.source)+' · '+esc(proofLabel(e.verification))+'</small> '+(e.reference?'<a href="'+esc(e.reference)+'" target="_blank" rel="noopener noreferrer">مشاهده منبع</a>':'')+'</div>'+(c?'<button class="btn tiny" data-open="'+esc(c.id)+'">پرونده</button>':'')+'</div>'}).join('')+'</div>':empty('مدرکی ثبت نشده','پس از ثبت پیام، پاسخ یا نتیجه، شواهد در این دفتر ظاهر می‌شوند.'))+'</section>';
 }
 function render(){
  if(!data)return;
@@ -555,7 +557,7 @@ function contactActivity(c){
  actions.map(function(a){return '<div class="event"><h3>تکمیل: '+esc(a.action_text)+'</h3><small>'+fmt(a.completed_at)+' · '+esc(a.actor)+'</small>'+
  '<p>اقدام بعدی: '+esc(a.next_action||'تعیین نشده')+' · '+fmt(a.next_action_at)+'</p></div>'}).join('')+'</div></div>':'';
  return '<div class="panel"><h2>تاریخچه پیام و پاسخ</h2>'+(mm.length?'<div class="timeline">'+list+'</div>':empty('هیچ پیامی ثبت نشده','از تب «پیشنویس» پیام شخصی‌سازی‌شده بسازید.'))+'</div>'+actionHistory+
- '<div class="panel"><h2>شواهد این مخاطب</h2>'+(ev.length?'<div class="stack">'+ev.map(function(e){return '<div class="event"><strong>'+esc(e.kind)+'</strong><p>'+esc(e.summary)+'</p><small>'+esc(e.verification)+' · '+fmt(e.created_at)+'</small></div>'}).join('')+'</div>':empty('هنوز سندی وجود ندارد','ثبت پاسخ، ارسال دستی و نتیجه، سند گزارش‌شده ایجاد می‌کند.'))+'</div>';
+ '<div class="panel"><h2>شواهد این مخاطب</h2>'+(ev.length?'<div class="stack">'+ev.map(function(e){return '<div class="event"><strong>'+esc(e.kind)+'</strong><p>'+esc(e.summary)+'</p><small>'+esc(proofLabel(e.verification))+' · '+fmt(e.created_at)+'</small></div>'}).join('')+'</div>':empty('هنوز سندی وجود ندارد','ثبت پاسخ، ارسال دستی و نتیجه، سند گزارش‌شده ایجاد می‌کند.'))+'</div>';
 }
 function draftPane(c){
  return '<div class="panel"><h2>۱. آماده‌سازی پیام شخصی</h2><p>پیشنویس کاملاً جدا از تأیید ارسال ذخیره می‌شود. برای ایمیل واقعی از تنظیمات provider موجود استفاده کنید؛ این بخش ارسال خودکار انجام نمی‌دهد.</p>'+
@@ -770,6 +772,7 @@ document.addEventListener('keydown',function(e){
  if((e.key==='Enter'||e.key===' ')&&e.target.matches('tr[data-open],.lead-tile[data-open]')){
   e.preventDefault();selected=e.target.getAttribute('data-open');detailTab='activity';draw();return
  }
+ if(el('drawerBack').classList.contains('open'))return;
  if(e.ctrlKey||e.metaKey||e.altKey||e.target.closest('input,textarea,select,[contenteditable]'))return;
  if(e.key==='/'&&view==='contacts'){e.preventDefault();el('filterText')?.focus();return}
  if(e.key==='n'||e.key==='N'){e.preventDefault();newContact();return}
