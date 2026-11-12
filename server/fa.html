@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0a1120">
+<title>OutboundOS | میز عملیات جذب و تبدیل</title>
+<style>
+:root{color-scheme:dark;--bg:#080e1c;--panel:#101a2b;--panel2:#15233a;--panel3:#1b2b42;--line:#2a3950;--text:#eef4fd;--muted:#a3b3c9;--subtle:#71849f;--accent:#5ce0c7;--accent2:#8ca5ff;--orange:#ffbf77;--danger:#f18f97;--radius:18px;--shadow:0 22px 80px #02091480}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(900px 450px at 94% -5%,#203c5660,transparent 65%),var(--bg);font:14px/1.8 Tahoma,"Noto Sans Arabic","Segoe UI",sans-serif;color:var(--text);min-height:100vh}
+button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.55;cursor:wait}button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+a{color:var(--accent2);text-decoration:none}a:hover{text-decoration:underline}h1,h2,h3,p{margin-top:0}h1{font-size:30px;line-height:1.5;margin-bottom:4px}h2{font-size:20px;margin-bottom:10px}h3{font-size:15px;margin-bottom:6px}p{color:var(--muted)}small{color:var(--subtle)}
+.app{display:grid;grid-template-columns:244px minmax(0,1fr);min-height:100vh}
+aside{position:sticky;top:0;height:100vh;padding:26px 17px;display:flex;flex-direction:column;gap:24px;background:#0b1423;border-left:1px solid var(--line)}
+.logo{display:flex;align-items:center;gap:12px;padding:0 10px}
+.mark{display:grid;place-items:center;width:38px;height:38px;background:linear-gradient(140deg,#55d9c6,#8896ee);border-radius:12px;color:#071421;font-weight:900;font-size:22px}
+.logo strong{display:block;font:700 19px/1.4 Arial,sans-serif;letter-spacing:-.5px}.logo small{display:block;font-size:11px;letter-spacing:.2px;color:var(--muted)}
+.nav{display:flex;flex-direction:column;gap:6px}.nav button{display:flex;align-items:center;gap:12px;width:100%;background:transparent;color:var(--muted);text-align:right;padding:12px 13px;border:1px solid transparent;border-radius:12px}
+.nav button:hover{background:var(--panel)}.nav button.active{background:#21423d;color:#b9fff0;border-color:#315e56}.nav .ico{width:23px;font-size:17px;text-align:center}
+.sidefoot{margin-top:auto;padding:16px;border-radius:16px;border:1px solid var(--line);background:linear-gradient(145deg,#14273a,#101b2b)}
+.sidefoot .fraction{font:800 29px Arial,sans-serif;color:var(--accent)}.sidefoot .bar{background:#304052;height:6px;border-radius:8px;overflow:hidden;margin:12px 0}.sidefoot .bar span{display:block;background:var(--accent);height:100%;width:0}
+.sidefoot p{font-size:12px;margin-bottom:0}
+main{min-width:0;padding:30px clamp(18px,3.5vw,58px) 70px;max-width:1600px;width:100%;margin:auto}
+.top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:30px;flex-wrap:wrap}.eyebrow{color:var(--accent);font-size:11px;font-weight:700;letter-spacing:1.5px}.topactions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:5px 10px;font-size:11px;border-radius:99px;border:1px solid var(--line);color:var(--muted);background:#142135}.dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.btn{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:10px 15px;border-radius:11px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.btn:hover{background:#263752;border-color:#60728e}.btn.primary{background:var(--accent);color:#082022;border-color:var(--accent)}.btn.primary:hover{background:#abf4e7}.btn.ghost{background:transparent}.btn.danger{color:var(--danger)}.btn.tiny{padding:5px 10px;font-size:11px}
+.pagehead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin:0 0 25px;flex-wrap:wrap}.pagehead p{margin:0}.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:24px}.metric{padding:18px 20px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);min-width:0}.metric .value{display:block;font:800 30px/1.5 Arial,sans-serif;letter-spacing:-1px}.metric .label{color:var(--muted);font-size:12px}.metric .hint{font-size:10px;color:var(--subtle)}
+.grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr);gap:18px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:18px;min-width:0}
+.panelhead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:15px;flex-wrap:wrap}.panelhead h2{margin:0}.muted{color:var(--muted)}.empty{background:#0a1323;border:1px dashed #38506b;border-radius:14px;padding:32px 18px;text-align:center;color:var(--muted)}
+.empty strong{display:block;color:var(--text);font-size:16px;margin-bottom:6px}.empty p{margin-bottom:0}.notice{border:1px solid #315969;background:#142d37;border-radius:13px;padding:14px 17px;color:#c5e7e9;font-size:12px;margin-bottom:18px}
+.stack{display:flex;flex-direction:column;gap:10px}.item{padding:14px;border:1px solid var(--line);border-radius:13px;background:#132036;display:flex;align-items:center;justify-content:space-between;gap:12px}.item:hover{border-color:#516783}.item strong{display:block;font-size:13px}.item p{margin:2px 0 0;font-size:11px}.item .meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.tag{display:inline-block;padding:3px 9px;border:1px solid #3e526c;background:#182b41;border-radius:99px;font-size:10px;color:#baccdb}.tag.good{color:#80ecd8;border-color:#32796c}.tag.warn{color:var(--orange);border-color:#805c39}.tag.bad{color:var(--danger);border-color:#7a4652}
+.funnel{display:flex;flex-direction:column;gap:12px}.frow{display:grid;grid-template-columns:125px minmax(0,1fr) 36px;align-items:center;gap:10px;font-size:12px}.track{height:7px;background:#29394d;border-radius:9px;overflow:hidden}.track span{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:9px}
+label{display:flex;flex-direction:column;gap:6px;font-size:11px;color:#b8c8d9;font-weight:700}input,textarea,select{background:#0b1424;border:1px solid #3a4a63;border-radius:10px;padding:10px 12px;color:var(--text);width:100%;outline:0;min-width:0}textarea{resize:vertical;min-height:85px}input::placeholder,textarea::placeholder{color:#617690}input:focus,textarea:focus,select:focus{border-color:var(--accent)}input[type=datetime-local]{color-scheme:dark}
+.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.formgrid .wide{grid-column:1/-1}.formactions{display:flex;justify-content:flex-start;gap:8px;margin-top:14px}.form-note{font-size:11px;color:var(--subtle);margin-top:7px}
+.filters{display:flex;gap:9px;margin-bottom:14px;flex-wrap:wrap}.filters input{flex:1;min-width:210px}.filters select{min-width:132px;width:auto}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px}.data{width:100%;border-collapse:collapse;font-size:12px}.data th{color:#96abc4;background:#101d2f;text-align:right;font-weight:600}.data td,.data th{padding:12px 15px;border-bottom:1px solid #25364c;white-space:nowrap}.data td{color:#dce8f7}.data tr:last-child td{border:0}.data tbody tr{cursor:pointer}.data tbody tr:hover{background:#1c2c43}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.campaign{padding:19px;border:1px solid var(--line);border-radius:15px;background:#142137}.campaign p{font-size:12px;min-height:42px}.campaign .actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:17px}
+.timeline{border-right:2px solid #35495e;padding-right:14px;display:flex;flex-direction:column;gap:14px}.event{padding:13px 15px;background:#15243a;border-radius:12px;border:1px solid #2a3d53;overflow-wrap:anywhere}.event.out{border-right:3px solid #61d8c7}.event.in{border-right:3px solid #a997fc}.event h3{display:flex;justify-content:space-between;align-items:center;gap:8px}.event p{color:#d3deed;white-space:pre-wrap;font-size:12px;margin:9px 0}.event small{display:block}
+.drawerback{position:fixed;inset:0;background:#050b17bc;z-index:30;display:none;backdrop-filter:blur(3px)}.drawerback.open{display:block}.drawer{position:absolute;inset:0 0 0 auto;width:min(760px,100%);background:#0d182a;border-left:1px solid #40516d;overflow:auto;padding:24px clamp(17px,3vw,30px);box-shadow:var(--shadow)}
+.drawerhead{position:sticky;top:-24px;background:#0d182af7;padding:12px 0 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;z-index:2}.drawerhead h2{margin:0}.drawersection{margin-top:18px}.drawersection .panel{margin-bottom:0}
+.tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:15px}.tabs button{padding:8px 11px;font-size:11px;background:#16253a;color:#b5c5d7;border:1px solid var(--line);border-radius:9px}.tabs button.active{background:#26453e;color:#91f0db;border-color:#448c7e}
+.error{padding:13px 15px;border:1px solid #9a4b58;background:#4a1b2b;border-radius:12px;color:#ffd3d9}.toast{position:fixed;left:18px;bottom:20px;z-index:80;background:#1b3a35;color:#d4fff4;border:1px solid #3b8073;border-radius:12px;padding:12px 18px;box-shadow:var(--shadow);display:none;max-width:min(440px,90vw)}
+.trust{border-top:1px solid var(--line);margin-top:26px;padding-top:18px;color:var(--subtle);font-size:11px}
+@media(max-width:1100px){.metrics{grid-template-columns:repeat(3,1fr)}.grid{grid-template-columns:1fr}.cards{grid-template-columns:1fr}}
+@media(max-width:760px){.app{display:block}aside{height:auto;position:sticky;z-index:15;top:0;padding:10px 12px;background:#0b1423ed;backdrop-filter:blur(15px);border-bottom:1px solid var(--line);border-left:0;gap:6px}.logo{padding:4px 3px}.logo strong{font-size:16px}.logo small{font-size:10px}.mark{width:30px;height:30px;font-size:17px}.nav{display:flex;flex-direction:row;overflow-x:auto;gap:5px;padding-bottom:2px}.nav button{white-space:nowrap;width:auto;flex:0 0 auto;padding:6px 10px;font-size:11px;gap:5px}.nav .ico{font-size:13px;width:auto}.sidefoot{display:none}main{padding:17px 13px 75px}.top{margin-bottom:18px}.topactions{gap:5px}h1{font-size:22px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.metric{padding:13px}.metric .value{font-size:25px}.panel{padding:16px}.formgrid{grid-template-columns:1fr}.drawer{padding:10px 14px}.drawerhead{top:-10px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside aria-label="ناوبری">
+ <div class="logo"><div class="mark">O</div><div><strong>OutboundOS</strong><small>OPERATIONS • فارسی</small></div></div>
+ <nav class="nav" id="nav">
+  <button data-view="today" class="active"><span class="ico">◈</span>میز امروز</button>
+  <button data-view="campaigns"><span class="ico">⌁</span>کمپین‌ها</button>
+  <button data-view="contacts"><span class="ico">◎</span>مخاطبان</button>
+  <button data-view="inbox"><span class="ico">✉</span>پاسخ‌ها</button>
+  <button data-view="analytics"><span class="ico">▥</span>تبدیل و تحلیل</button>
+  <button data-view="evidence"><span class="ico">◇</span>شواهد</button>
+ </nav>
+ <div class="sidefoot"><small>هدف مرحله نخست</small><div><span class="fraction" id="goalFraction">۰ / ۱۰</span></div><div class="bar"><span id="goalBar"></span></div><p>۱۰ مخاطب واقعی؛ پیشرفت صرفاً براساس داده ثبت‌شده و قابل مشاهده.</p></div>
+</aside>
+<main>
+ <div class="top"><div><div class="eyebrow">OUTREACH OPERATING SYSTEM</div><small>اجرای روزانه • تصمیم بعدی • سند • نتیجه</small></div>
+ <div class="topactions"><span class="pill"><span class="dot" id="serverDot"></span><span id="connection">در حال اتصال</span></span><button class="btn ghost" data-export="1">خروجی CSV</button><a class="btn ghost" href="/app" title="تنظیم گذرکلید و اتصال سرویس‌های ارسال">Passkey / تنظیمات</a><button class="btn primary" data-new-contact="1">+ مخاطب واقعی</button></div></div>
+ <div id="notice" class="notice" hidden></div>
+ <div id="screen"><div class="empty"><strong>بارگذاری فضای کاری</strong><p>داده‌ها از سرور دریافت می‌شوند. این صفحه هیچ کاربر یا نتیجه آزمایشی به شما نشان نمی‌دهد.</p></div></div>
+ <div class="trust">OutboundOS محصولی مستقل است. دسترسی بدون Admin Token؛ نگهداری workspace با Passkey در تنظیمات. ارجاع Agent یک وظیفه ثبت‌شده است، نه ادعای اجرای Agent. پیام دستی و نتیجه گزارش‌شده، تأیید مستقل تلقی نمی‌شوند.</div>
+</main>
+</div>
+<div class="drawerback" id="drawerBack"><div class="drawer" role="dialog" aria-modal="true" aria-label="جزئیات عملیات"><div class="drawerhead"><h2 id="drawerTitle">مخاطب</h2><button class="btn ghost" data-close="1">بستن ×</button></div><div id="drawerBody"></div></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+(function(){
+'use strict';
+var data=null,view='today',selected=null,detailTab='activity',filters={text:'',stage:'',owner:'',campaign:''},busy=false;
+var stages={new:'تازه',research:'در پژوهش',qualified:'واجد شرایط',contacted:'تماس گرفته',replied:'پاسخ داده',meeting:'جلسه',won:'تبدیل‌شده (گزارش)',lost:'ناموفق',unsubscribed:'عدم تماس',needs_review:'نیازمند بررسی',sending:'در حال ارسال'};
+var channels={email:'ایمیل',linkedin:'لینکدین',phone:'تلفن',whatsapp:'واتس‌اپ',telegram:'تلگرام',instagram:'اینستاگرام',website:'وب‌سایت',in_person:'حضوری',other:'سایر'};
+var outcomes={qualified:'واجد شرایط',booked:'گفت‌وگوی رزروشده',converted:'کاربر تبدیل‌شده',lost:'بدون نتیجه',not_fit:'نامتناسب',pending:'در انتظار'};
+function el(id){return document.getElementById(id)}
+function esc(v){return String(v===null||v===undefined?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function fmt(v){if(!v)return '—';try{return new Date(v).toLocaleString('fa-IR-u-ca-gregory',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}catch{return String(v)}}
+function N(v){return Number(v||0).toLocaleString('fa-IR')}
+function opts(map,current,empty){var html=empty===undefined?'':'<option value="">'+esc(empty)+'</option>';Object.keys(map).forEach(function(k){html+='<option value="'+esc(k)+'"'+(String(current)===k?' selected':'')+'>'+esc(map[k])+'</option>'});return html}
+function campaignsOpt(current,blank){var list=(data&&data.campaigns)||[];return '<option value="">'+esc(blank||'بدون کمپین')+'</option>'+list.map(function(c){return '<option value="'+esc(c.id)+'"'+(current===c.id?' selected':'')+'>'+esc(c.name)+'</option>'}).join('')}
+function notice(message){el('notice').hidden=false;el('notice').textContent=message}
+function toast(message,err){var n=el('toast');n.textContent=message;n.style.display='block';n.style.background=err?'#501e2c':'#1b3a35';clearTimeout(n._t);n._t=setTimeout(function(){n.style.display='none'},4800)}
+function inputDate(v){if(!v)return '';var d=new Date(v);if(!Number.isFinite(d.getTime()))return '';var p=function(x){return String(x).padStart(2,'0')};return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes())}
+function isoDate(v){return v?new Date(v).toISOString():null}
+function formObj(form){var out={};new FormData(form).forEach(function(v,k){out[k]=v});if(Object.prototype.hasOwnProperty.call(out,'next_action_at'))out.next_action_at=isoDate(out.next_action_at);if(Object.prototype.hasOwnProperty.call(out,'when_at'))out.when_at=isoDate(out.when_at);if(Object.prototype.hasOwnProperty.call(out,'occurred_at'))out.occurred_at=isoDate(out.occurred_at);return out}
+async function api(path,method,body){
+ var r=await fetch(path,{method:method||'GET',credentials:'same-origin',headers:body?{'content-type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
+ var raw=await r.text(),json={};try{json=JSON.parse(raw)}catch(e){}
+ if(!r.ok)throw Error(json.error||'خطای سرور ('+r.status+')');return json
+}
+async function load(){
+ try{
+  if(!data){await api('/api/state','GET')}
+  data=await api('/api/fa/state','GET');el('connection').textContent='فضای کاری متصل';el('serverDot').style.background='#5ce0c7';
+  if(!data.workspace.saved)notice('این فضای کاری در مرورگر فعلی فعال است. برای بازیابی پایدار از دستگاه دیگر، از بخش Passkey / تنظیمات، گذرکلید ثبت کنید. ثبت مخاطب و پیگیری دستی بدون اتصال ایمیل کار می‌کند.');
+  else el('notice').hidden=true;
+  render();if(selected)draw();
+ }catch(e){el('connection').textContent='ارتباط برقرار نشد';el('serverDot').style.background='#f18f97';el('screen').innerHTML='<div class="error">'+esc(e.message)+'</div><button class="btn primary" data-reload="1">تلاش دوباره</button>'}
+}
+function mCard(label,value,hint){return '<div class="metric"><div class="label">'+esc(label)+'</div><span class="value">'+N(value)+'</span><div class="hint">'+esc(hint||'')+'</div></div>'}
+function kpi(){var m=data.metrics;return '<div class="metrics">'+mCard('مخاطب ثبت‌شده',m.contacts,'هدف مرحله اول: ۱۰ نفر')+mCard('تماس انجام‌شده',m.contacted,'ارسال گزارش‌شده و provider')+mCard('پاسخ واقعی ثبت‌شده',m.replied,'از جمله '+N(m.provider_replies)+' پاسخ provider')+mCard('گفت‌وگوی رزروشده',m.booked,'جلسه ثبت‌شده / گزارش‌شده')+mCard('کاربر تبدیل‌شده',m.converted_reported,'تأیید مستقل: '+N(m.converted_verified))+'</div>'}
+function heading(h,p,actions){return '<div class="pagehead"><div><div class="eyebrow">OUTBOUNDOS / OPERATIONS</div><h1>'+h+'</h1><p>'+p+'</p></div><div class="toolbar">'+(actions||'')+'</div></div>'}
+function empty(h,p,action){return '<div class="empty"><strong>'+h+'</strong><p>'+p+'</p>'+(action||'')+'</div>'}
+function statusTag(status){return '<span class="tag '+(status==='won'||status==='qualified'?'good':status==='needs_review'||status==='lost'?'warn':'')+'">'+esc(stages[status]||status)+'</span>'}
+function contactLabel(c){return esc(c.name||c.company)+' <small> · '+esc(c.company)+'</small>'}
+function today(){
+ var m=data.metrics,rows=data.contacts.slice().filter(function(c){return !['won','lost','unsubscribed'].includes(c.status)}).sort(function(a,b){return (a.next_action_at?new Date(a.next_action_at).getTime():9999999999999)-(b.next_action_at?new Date(b.next_action_at).getTime():9999999999999)});
+ var due=rows.filter(function(c){return c.next_action_at&&new Date(c.next_action_at).getTime()<Date.now()+86400000}).slice(0,12);
+ var unplanned=rows.filter(function(c){return !c.next_action_at}).slice(0,5);
+ var all=due.concat(unplanned.filter(function(c){return !due.some(function(d){return d.id===c.id})})).slice(0,12);
+ var stagesN={new:data.contacts.filter(function(c){return c.status==='new'||c.status==='research'}).length,contacted:m.contacted,replied:m.replied,qualified:m.qualified,booked:m.booked,converted:m.converted_reported};
+ var stageNames={new:'مخاطب پیدا شده',contacted:'پیام ارسال‌شده',replied:'پاسخ دریافت‌شده',qualified:'واجد شرایط',booked:'گفت‌وگو',converted:'تبدیل گزارش‌شده'};
+ var bar='<div class="funnel">'+Object.keys(stagesN).map(function(k){return '<div class="frow"><span>'+stageNames[k]+'</span><div class="track"><span style="width:'+Math.min(100,Math.round(stagesN[k]/Math.max(10,m.contacts,1)*100))+'%"></span></div><strong>'+N(stagesN[k])+'</strong></div>'}).join('')+'</div>';
+ var items=all.length?'<div class="stack">'+all.map(function(c){return '<div class="item"><div><strong>'+contactLabel(c)+'</strong><p>'+esc(c.next_action||'اقدام بعدی هنوز تعیین نشده')+' · '+esc(c.owner||'Founder')+'</p><small>'+fmt(c.next_action_at)+'</small></div><button class="btn tiny" data-open="'+esc(c.id)+'">پیگیری</button></div>'}).join('')+'</div>':empty('صف امروز خالی است','مخاطب واقعی ثبت کنید و برای هر فرد اقدام بعدی و موعد مشخص بگذارید.');
+ el('goalFraction').textContent=N(m.contacts)+' / ۱۰';el('goalBar').style.width=Math.min(100,m.contacts*10)+'%';
+ return heading('میز عملیات امروز','از مخاطب واقعی تا نتیجه قابل سنجش؛ هر حرکت یک مسئول و اقدام بعدی دارد.','<button class="btn primary" data-new-contact="1">+ افزودن مخاطب</button>')+kpi()+
+ '<div class="grid"><div><section class="panel"><div class="panelhead"><h2>صف پیگیری و اقدام بعدی</h2><span class="tag warn">'+N(m.overdue)+' موعد گذشته</span></div>'+items+'</section>'+
+ '<section class="panel"><div class="panelhead"><h2>حرکت بعدی</h2></div><p>۱. کمپین و مخاطب هدف را تعریف کنید. ۲. پیام پیشنهادی بسازید. ۳. پیام واقعی ارسال‌شده را جداگانه ثبت کنید. ۴. پاسخ، qualification و handoff را ثبت و تاریخ پیگیری تعیین کنید.</p><div class="toolbar"><button class="btn" data-view="campaigns">کمپین‌ها</button><button class="btn" data-view="contacts">مخاطبان</button></div></section></div>'+
+ '<div><section class="panel"><div class="panelhead"><h2>قیف ۱۰ کاربر نخست</h2><span class="tag">بدون داده نمونه</span></div>'+bar+'<p class="form-note">تمام شمارش‌ها از رکوردهای واقعی همین workspace هستند؛ ارسال دستی همچنان «گزارش اپراتور» است.</p></section>'+
+ '<section class="panel"><h2>انضباط شواهد</h2><p>برای هر outreach، متن پیشنهادی، متن واقعاً ارسال‌شده، کانال، منبع و پاسخ را نگه دارید. conversion خوداظهاری با تأیید مستقل یکی نیست.</p><span class="tag good">تأیید مستقل: '+N(m.converted_verified)+'</span></section></div></div>';
+}
+function campaignCard(c){
+ var total=data.contacts.filter(function(p){return p.campaign_id===c.id}).length;
+ var sent=data.messages.filter(function(x){return x.campaign_id===c.id&&['manually_sent','sent','delivered'].includes(x.status)}).length;
+ return '<article class="campaign"><div class="panelhead"><h3>'+esc(c.name)+'</h3><span class="tag '+(c.status==='active'?'good':'')+'">'+esc(c.status==='active'?'فعال':c.status==='draft'?'پیش‌نویس':'متوقف')+'</span></div>'+
+ '<p>'+esc(c.target_audience||'مخاطب هدف هنوز تعریف نشده')+'</p><div class="meta"><span class="tag">'+esc(channels[c.channel]||c.channel||'ایمیل')+'</span> <span class="tag">مالک: '+esc(c.owner||'Founder')+'</span></div>'+
+ '<p style="margin-top:12px">هدف: '+esc(c.goal||'—')+'<br>منبع: '+esc(c.source||'—')+'</p><div><small>'+N(total)+' مخاطب متصل · '+N(sent)+' ارسال ثبت‌شده</small></div>'+
+ '<div class="actions"><button class="btn tiny" data-campaign-edit="'+esc(c.id)+'">ویرایش</button><button class="btn tiny" data-campaign-toggle="'+esc(c.id)+'" data-active="'+esc(c.status)+'">'+(c.status==='active'?'توقف':'فعال‌سازی')+'</button><button class="btn tiny" data-campaign-filter="'+esc(c.id)+'">مخاطبان کمپین</button></div></article>'
+}
+function campaigns(){
+ var form='<form id="campaignForm"><div class="formgrid">'+
+ '<label>نام کمپین <input name="name" maxlength="200" required placeholder="مثلاً معرفی محصول به شرکت‌های منتخب"></label>'+
+ '<label>کانال اصلی <select name="channel">'+opts(channels,'email')+'</select></label>'+
+ '<label class="wide">مخاطب هدف / ICP <input name="target_audience" required maxlength="900" placeholder="نقش، صنعت، اندازه شرکت و نیاز مشخص"></label>'+
+ '<label>مالک <input name="owner" value="Founder" required></label><label>منبع جذب <input name="source" placeholder="LinkedIn، وب‌سایت، معرفی..."></label>'+
+ '<label class="wide">هدف قابل اندازه‌گیری <input name="goal" placeholder="رزرو ۳ گفت‌وگوی اکتشافی با ۱۰ مخاطب واقعی"></label>'+
+ '<label class="wide">عنوان پیشنهادی <input name="subject" required maxlength="270" placeholder="یک موضوع مشخص و مرتبط"></label>'+
+ '<label class="wide">قالب پیام پیشنهادی <textarea name="body" rows="5" required placeholder="سلام {first_name}، ... {company} ..."></textarea></label></div>'+
+ '<div class="form-note">متغیرها: {first_name}، {name}، {company}، {title}، {signal}، {offer}، {booking_link}. ساخت کمپین هیچ پیامی ارسال نمی‌کند.</div>'+
+ '<div class="formactions"><button class="btn primary" type="submit">ساخت کمپین</button></div></form>';
+ return heading('کمپین‌ها و پیام‌ها','تعریف ICP، منبع، مالک و پیام پیشنهادی؛ فعال‌سازی به‌تنهایی ارسال خودکار نیست.')+
+ '<div class="grid"><section class="panel"><h2>کمپین‌های واقعی</h2>'+(data.campaigns.length?'<div class="cards">'+data.campaigns.map(campaignCard).join('')+'</div>':empty('هنوز کمپینی ثبت نشده','برای شروع یک کمپین با مخاطب و هدف دقیق بسازید.'))+'</section>'+
+ '<section class="panel"><h2>کمپین جدید</h2>'+form+'</section></div>';
+}
+function contactForm(){return '<form id="contactForm"><div class="formgrid">'+
+ '<label>نام شخص <input name="name" maxlength="150" placeholder="نام واقعی مخاطب"></label>'+
+ '<label>شرکت <input name="company" maxlength="200" placeholder="شرکت یا سازمان"></label>'+
+ '<label>ایمیل <input name="email" type="email" placeholder="در صورت داشتن ایمیل"></label>'+
+ '<label>سمت <input name="title" placeholder="Founder / CEO / Head of Sales"></label>'+
+ '<label>کمپین <select name="campaign_id">'+campaignsOpt('')+'</select></label>'+
+ '<label>کانال <select name="channel">'+opts(channels,'linkedin')+'</select></label>'+
+ '<label>منبع <input name="source" value="manual" required></label>'+
+ '<label>لینک منبع <input name="source_url" type="url" placeholder="https://..."></label>'+
+ '<label>مالک <input name="owner" value="Founder" required></label>'+
+ '<label>کیفیت تطابق (۰ تا ۱۰۰) <input name="match_quality" type="number" min="0" max="100" placeholder="پس از ارزیابی، نه امتیاز فرضی"></label>'+
+ '<label class="wide">نشانه تناسب / دلیل انتخاب <textarea name="signal" rows="2" placeholder="چه شاهدی نشان می‌دهد مخاطب مناسب است؟"></textarea></label>'+
+ '<label>اقدام بعدی <input name="next_action" placeholder="مثلاً ارسال پیام شخصی‌سازی‌شده"></label>'+
+ '<label>موعد اقدام <input name="next_action_at" type="datetime-local"></label>'+
+ '<label class="wide">مبنای تماس <input name="consent_basis" placeholder="برای ارسال ایمیل خودکار، مبنای معتبر لازم است"></label></div>'+
+ '<div class="formactions"><button class="btn primary" type="submit">ثبت مخاطب واقعی</button></div></form>'}
+function contacts(){
+ var rows=data.contacts.filter(function(c){
+  var q=filters.text.trim().toLowerCase();
+  if(q&&!([c.name,c.company,c.email,c.title,c.source].join(' ').toLowerCase().includes(q)))return false;
+  if(filters.stage&&c.status!==filters.stage)return false;
+  if(filters.owner&&(c.owner||'Founder')!==filters.owner)return false;
+  if(filters.campaign&&c.campaign_id!==filters.campaign)return false;
+  return true
+ });
+ var owners={};data.contacts.forEach(function(c){owners[c.owner||'Founder']=c.owner||'Founder'});
+ var filterHtml='<div class="filters"><input id="filterText" placeholder="جست‌وجوی نام، شرکت، ایمیل یا منبع" value="'+esc(filters.text)+'">'+
+ '<select id="filterStage">'+opts(stages,filters.stage,'همه مراحل')+'</select><select id="filterOwner">'+opts(owners,filters.owner,'همه مسئول‌ها')+'</select>'+
+ '<select id="filterCampaign">'+campaignsOpt(filters.campaign,'همه کمپین‌ها')+'</select></div>';
+ var table=rows.length?'<div class="tablewrap"><table class="data"><thead><tr><th>مخاطب / شرکت</th><th>مرحله</th><th>مسئول</th><th>منبع / کانال</th><th>تطابق</th><th>اقدام بعدی</th><th>زمان</th></tr></thead><tbody>'+
+ rows.map(function(c){return '<tr data-open="'+esc(c.id)+'"><td><strong>'+esc(c.name||'—')+'</strong><br><small>'+esc(c.company)+'</small></td><td>'+statusTag(c.status)+'</td><td>'+esc(c.owner||'Founder')+'</td><td>'+esc(c.source||'—')+' / '+esc(channels[c.channel]||'—')+'</td><td>'+(c.match_quality===null||c.match_quality===undefined?'—':N(c.match_quality)+'/۱۰۰')+'</td><td>'+esc(c.next_action||'تعیین نشده')+'</td><td>'+fmt(c.next_action_at)+'</td></tr>'}).join('')+'</tbody></table></div>':empty('مخاطبی در این نما نیست','فیلترها را پاک کنید یا مخاطب واقعی جدیدی ثبت کنید.');
+ return heading('مخاطبان و فرصت‌ها','برای هر رکورد: owner، مرحله، next action/date، منبع، سابقه پیام، پاسخ، تناسب و شواهد.','<button class="btn primary" data-new-contact="1">+ مخاطب جدید</button>')+
+ '<section class="panel"><div class="panelhead"><h2>فهرست عملیاتی</h2><span class="tag">'+N(rows.length)+' از '+N(data.contacts.length)+' مخاطب</span></div>'+filterHtml+table+'</section>';
+}
+function inbox(){
+ var replies=data.messages.filter(function(m){return m.direction==='inbound'}).sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at)});
+ return heading('پاسخ‌ها و گفتگوها','پاسخ ثبت‌شده دستی با پاسخ دریافتی از provider به‌وضوح متفاوت است.')+
+ '<section class="panel"><div class="panelhead"><h2>پاسخ‌های ثبت‌شده</h2><span class="tag">'+N(replies.length)+' پیام</span></div>'+
+ (replies.length?'<div class="stack">'+replies.map(function(m){var c=data.contacts.find(function(x){return x.id===m.prospect_id});return '<div class="item"><div><strong>'+esc(c?c.name||c.company:'مخاطب')+'</strong> <span class="tag '+(m.status==='received'?'good':'warn')+'">'+(m.status==='received'?'دریافت provider':'ثبت دستی')+'</span><p>'+esc((m.actual_body||m.body||'').slice(0,250))+'</p><small>'+fmt(m.occurred_at||m.created_at)+' · '+esc(channels[m.channel]||'')+'</small></div><button class="btn tiny" data-open="'+esc(m.prospect_id)+'">پیگیری</button></div>'}).join('')+'</div>':empty('هنوز پاسخی ثبت نشده','در پرونده مخاطب می‌توانید پاسخ واقعی را همراه با منبع و سند ثبت کنید.'))+'</section>';
+}
+function analytics(){
+ var m=data.metrics,den=Math.max(1,m.contacted),stageCounts={};
+ data.contacts.forEach(function(c){stageCounts[c.status]=(stageCounts[c.status]||0)+1});
+ return heading('نرخ پاسخ و تبدیل','اعداد از رکوردهای workspace محاسبه شده‌اند؛ گزارش انسانی مستقل از تأیید provider و verifier است.')+kpi()+
+ '<div class="grid"><section class="panel"><h2>شاخص‌های واقعی</h2><div class="stack">'+
+ '<div class="item"><strong>نرخ پاسخ از تماس‌های ثبت‌شده</strong><strong>'+N(m.reply_rate)+'٪</strong></div>'+
+ '<div class="item"><strong>نسبت گفت‌وگو به مخاطب</strong><strong>'+N(Math.round(100*m.booked/Math.max(1,m.contacts)))+'٪</strong></div>'+
+ '<div class="item"><strong>فرصت واجد شرایط</strong><strong>'+N(m.qualified)+'</strong></div>'+
+ '<div class="item"><strong>تبدیل گزارش‌شده</strong><strong>'+N(m.converted_reported)+'</strong></div>'+
+ '<div class="item"><strong>تبدیل با تأیید مستقل</strong><strong>'+N(m.converted_verified)+'</strong></div></div>'+
+ '<p class="form-note">مخرج نرخ پاسخ: مخاطبان یکتای دارای ارسال ثبت‌شده؛ صورت: مخاطبان یکتای دارای پاسخ ثبت‌شده. پیام دستی فاقد تأیید ارسال از کانال است.</p></section>'+
+ '<section class="panel"><h2>توزیع مراحل</h2><div class="stack">'+Object.keys(stageCounts).map(function(k){return '<div class="item"><span>'+esc(stages[k]||k)+'</span><strong>'+N(stageCounts[k])+'</strong></div>'}).join('')+'</div></section></div>';
+}
+function evidences(){
+ var rows=data.evidence||[];
+ return heading('دفتر شواهد','پیشنویس، ادعای ارسال، پاسخ، نتیجه و تأیید مستقل هرکدام وضعیت مستقل خود را دارند.')+
+ '<div class="notice">هر سندی که دستی وارد می‌شود «گزارش‌شده / تأییدنشده» باقی می‌ماند. فقط receipt معتبر از verifier مستقل می‌تواند نتیجه را تأییدشده کند؛ پیوند ادعایی چنین تأییدی ایجاد نمی‌کند.</div>'+
+ '<section class="panel"><div class="panelhead"><h2>زنجیره شواهد</h2><span class="tag">'+N(rows.length)+' رکورد</span></div>'+
+ (rows.length?'<div class="stack">'+rows.map(function(e){var c=data.contacts.find(function(x){return x.id===e.prospect_id});return '<div class="item"><div><strong>'+esc(e.kind)+' · '+esc(c?c.name||c.company:'—')+'</strong><p>'+esc(e.summary)+'</p><small>'+fmt(e.created_at)+' · '+esc(e.source)+' · '+esc(e.verification)+'</small> '+(e.reference?'<a href="'+esc(e.reference)+'" target="_blank" rel="noopener noreferrer">مشاهده منبع</a>':'')+'</div>'+(c?'<button class="btn tiny" data-open="'+esc(c.id)+'">پرونده</button>':'')+'</div>'}).join('')+'</div>':empty('مدرکی ثبت نشده','پس از ثبت پیام، پاسخ یا نتیجه، شواهد در این دفتر ظاهر می‌شوند.'))+'</section>';
+}
+function render(){
+ if(!data)return;
+ document.querySelectorAll('[data-view]').forEach(function(n){if(n.closest('#nav'))n.classList.toggle('active',n.getAttribute('data-view')===view)});
+ el('goalFraction').textContent=N(data.metrics.contacts)+' / ۱۰';el('goalBar').style.width=Math.min(100,data.metrics.contacts*10)+'%';
+ el('screen').innerHTML=view==='campaigns'?campaigns():view==='contacts'?contacts():view==='inbox'?inbox():view==='analytics'?analytics():view==='evidence'?evidences():today()
+}
+function openDrawer(title,html){el('drawerTitle').textContent=title;el('drawerBody').innerHTML=html;el('drawerBack').classList.add('open');document.body.style.overflow='hidden'}
+function closeDrawer(){el('drawerBack').classList.remove('open');document.body.style.overflow='';selected=null}
+function newContact(){selected=null;openDrawer('ثبت مخاطب واقعی','<div class="drawersection panel"><h2>شناسایی و اقدام بعدی</h2><p>اطلاعات واقعی وارد کنید؛ نمونه یا پروفایل ساختگی افزوده نمی‌شود.</p>'+contactForm()+'</div>')}
+function editCampaign(cid){
+ var c=data.campaigns.find(function(x){return x.id===cid});if(!c)return;
+ openDrawer('ویرایش کمپین','<div class="drawersection panel"><form id="campaignEditForm" data-id="'+esc(cid)+'"><div class="formgrid">'+
+ '<label>نام<input name="name" required value="'+esc(c.name)+'"></label><label>کانال<select name="channel">'+opts(channels,c.channel)+'</select></label>'+
+ '<label class="wide">مخاطب هدف<input name="target_audience" value="'+esc(c.target_audience)+'"></label>'+
+ '<label>مالک<input name="owner" value="'+esc(c.owner)+'"></label><label>منبع<input name="source" value="'+esc(c.source)+'"></label>'+
+ '<label class="wide">هدف<input name="goal" value="'+esc(c.goal)+'"></label>'+
+ '<label class="wide">عنوان<input name="subject" required value="'+esc(c.subject)+'"></label>'+
+ '<label class="wide">قالب پیام<textarea name="body" required rows="7">'+esc(c.body)+'</textarea></label></div><div class="formactions"><button class="btn primary" type="submit">ذخیره تغییرات</button></div></form></div>')
+}
+function detailForm(c){
+ return '<form id="detailForm" data-id="'+esc(c.id)+'"><div class="formgrid">'+
+ '<label>نام<input name="name" value="'+esc(c.name)+'"></label><label>شرکت<input name="company" value="'+esc(c.company)+'"></label>'+
+ '<label>ایمیل<input name="email" type="email" value="'+esc(c.email||'')+'"></label><label>سمت<input name="title" value="'+esc(c.title)+'"></label>'+
+ '<label>مرحله<select name="status">'+opts(stages,c.status)+'</select></label><label>مالک<input name="owner" value="'+esc(c.owner||'Founder')+'"></label>'+
+ '<label>کانال<select name="channel">'+opts(channels,c.channel)+'</select></label><label>کمپین<select name="campaign_id">'+campaignsOpt(c.campaign_id)+'</select></label>'+
+ '<label>منبع<input name="source" value="'+esc(c.source||'')+'"></label><label>کیفیت تطابق (۰–۱۰۰)<input name="match_quality" type="number" min="0" max="100" value="'+esc(c.match_quality===null?'':c.match_quality)+'"></label>'+
+ '<label class="wide">چرا واجد شرایط است؟<textarea name="qualification" rows="2">'+esc(c.qualification||'')+'</textarea></label>'+
+ '<label class="wide">اقدام بعدی<input name="next_action" value="'+esc(c.next_action||'')+'"></label>'+
+ '<label>موعد پیگیری<input name="next_action_at" type="datetime-local" value="'+inputDate(c.next_action_at)+'"></label>'+
+ '<label>لینک منبع<input name="source_url" type="url" value="'+esc(c.source_url||'')+'"></label>'+
+ '<label class="wide">خلاصه پاسخ / وضعیت<textarea name="response_summary">'+esc(c.response_summary||'')+'</textarea></label></div>'+
+ '<div class="formactions"><button class="btn primary" type="submit">ذخیره پرونده و اقدام بعدی</button></div></form>'
+}
+function contactActivity(c){
+ var mm=data.messages.filter(function(m){return m.prospect_id===c.id}).slice().sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at)});
+ var ev=data.evidence.filter(function(e){return e.prospect_id===c.id}).slice(0,20);
+ var list=mm.map(function(m){
+  var isOut=m.direction==='outbound',proposed=m.proposed_body||m.body||'',actual=m.actual_body||(m.status==='draft'?'':m.body);
+  var label=m.status==='draft'?'پیشنویس (ارسال‌نشده)':m.status==='manually_sent'?'ارسال دستی گزارش‌شده':m.status==='received'?'پاسخ provider':m.status==='reported_received'?'پاسخ ثبت دستی':esc(m.status);
+  return '<div class="event '+(isOut?'out':'in')+'"><h3><span>'+label+'</span><span class="tag">'+esc(channels[m.channel]||m.channel)+'</span></h3>'+
+  (isOut?'<small>پیشنهادی:</small><p>'+esc(proposed)+'</p>':'')+
+  (actual?'<small>'+(isOut?'متن واقعاً ارسال‌شده / ثبت‌شده:':'پاسخ واقعی ثبت‌شده:')+'</small><p>'+esc(actual)+'</p>':'')+
+  '<small>'+fmt(m.occurred_at||m.created_at)+' · '+(m.provenance==='self_reported'?'گزارش اپراتور':m.status==='received'?'دریافت provider':'وضعیت سیستم')+'</small>'+
+  (m.evidence_url?'<a target="_blank" rel="noopener noreferrer" href="'+esc(m.evidence_url)+'">مشاهده سند</a>':'')+
+  (m.status==='draft'?'<div class="formactions"><button class="btn tiny primary" data-confirm="'+esc(m.id)+'">ثبت ارسال واقعی</button></div>':'')+'</div>'
+ }).join('');
+ return '<div class="panel"><h2>تاریخچه پیام و پاسخ</h2>'+(mm.length?'<div class="timeline">'+list+'</div>':empty('هیچ پیامی ثبت نشده','از تب «پیشنویس» پیام شخصی‌سازی‌شده بسازید.'))+'</div>'+
+ '<div class="panel"><h2>شواهد این مخاطب</h2>'+(ev.length?'<div class="stack">'+ev.map(function(e){return '<div class="event"><strong>'+esc(e.kind)+'</strong><p>'+esc(e.summary)+'</p><small>'+esc(e.verification)+' · '+fmt(e.created_at)+'</small></div>'}).join('')+'</div>':empty('هنوز سندی وجود ندارد','ثبت پاسخ، ارسال دستی و نتیجه، سند گزارش‌شده ایجاد می‌کند.'))+'</div>';
+}
+function draftPane(c){
+ return '<div class="panel"><h2>۱. آماده‌سازی پیام شخصی</h2><p>پیشنویس کاملاً جدا از تأیید ارسال ذخیره می‌شود. برای ایمیل واقعی از تنظیمات provider موجود استفاده کنید؛ این بخش ارسال خودکار انجام نمی‌دهد.</p>'+
+ '<form id="draftForm"><div class="formgrid"><label>کمپین<select name="campaign_id" required>'+campaignsOpt(c.campaign_id,'کمپین را انتخاب کنید')+'</select></label>'+
+ '<label>کانال<select name="channel">'+opts(channels,c.channel||'linkedin')+'</select></label>'+
+ '<label class="wide">عنوان جایگزین (اختیاری)<input name="subject" placeholder="خالی = عنوان قالب کمپین"></label>'+
+ '<label class="wide">متن جایگزین (اختیاری)<textarea name="body" rows="3" placeholder="خالی = متن قالب کمپین و شخصی‌سازی با متغیرها"></textarea></label></div>'+
+ '<div class="formactions"><button class="btn primary" type="submit">ساخت پیشنویس؛ بدون ارسال</button></div></form></div>';
+}
+function confirmPane(c,selectedMsg){
+ var drafts=data.messages.filter(function(m){return m.prospect_id===c.id&&m.kind==='manual'&&m.status==='draft'});
+ var draft=selectedMsg?drafts.find(function(d){return d.id===selectedMsg}):drafts[0];
+ if(!draft)return '<div class="panel">'+empty('پیشنویس ارسال‌نشده‌ای وجود ندارد','ابتدا از تب «پیشنویس» یک پیام بسازید.')+'</div>';
+ return '<div class="panel"><h2>۲. ثبت ارسال واقعاً انجام‌شده</h2><p>فقط پس از ارسال در کانال بیرونی، متن واقعی و کانال را ثبت کنید. این عمل هیچ پیامی ارسال نمی‌کند و ادعای تأیید provider ندارد.</p>'+
+ '<form id="sendForm" data-id="'+esc(draft.id)+'"><div class="notice"><strong>پیام پیشنهادی:</strong><p style="white-space:pre-wrap;margin:4px 0">'+esc(draft.proposed_body||draft.body)+'</p><button type="button" class="btn tiny" data-copy="'+esc(draft.id)+'">کپی پیام پیشنهادی</button></div>'+
+ '<div class="formgrid"><label>کانال واقعی<select name="channel">'+opts(channels,draft.channel||c.channel)+'</select></label><label>زمان ارسال<input name="occurred_at" type="datetime-local" value="'+inputDate(new Date())+'"></label>'+
+ '<label class="wide">عنوان واقعاً ارسال‌شده<input name="actual_subject" value="'+esc(draft.proposed_subject||draft.subject)+'"></label>'+
+ '<label class="wide">متن واقعاً ارسال‌شده<textarea name="actual_body" rows="6" required>'+esc(draft.proposed_body||draft.body)+'</textarea></label>'+
+ '<label class="wide">لینک سند ارسال (اختیاری)<input type="url" name="evidence_url" placeholder="URL پیام/اسکرین‌شات در سرویس خودتان"></label>'+
+ '<label class="wide">شناسه پیام بیرونی (اختیاری)<input name="external_message_id" placeholder="شناسه واقعی، نه ساختگی"></label></div>'+
+ '<div class="formactions"><button class="btn primary" type="submit">ثبت ارسالِ انجام‌شده</button></div></form></div>'
+}
+function replyPane(c){
+ return '<div class="panel"><h2>۳. ثبت پاسخ واقعی</h2><p>متن دریافتی از فرد را وارد کنید. پاسخ دستی به‌عنوان self-reported مشخص می‌شود.</p>'+
+ '<form id="replyForm"><div class="formgrid"><label>کانال<select name="channel">'+opts(channels,c.channel||'email')+'</select></label><label>زمان دریافت<input name="occurred_at" type="datetime-local" value="'+inputDate(new Date())+'"></label>'+
+ '<label class="wide">عنوان پاسخ<input name="subject" placeholder="در صورت وجود"></label>'+
+ '<label class="wide">متن واقعی پاسخ<textarea name="body" rows="5" required placeholder="بدون بازنویسی ساختگیِ پاسخ"></textarea></label>'+
+ '<label class="wide">برداشت و اقدام بعدی<textarea name="summary" rows="2"></textarea></label>'+
+ '<label class="wide">لینک شواهد (اختیاری)<input name="evidence_url" type="url" placeholder="https://..."></label></div>'+
+ '<div class="formactions"><button class="btn primary" type="submit">ثبت پاسخ واقعی</button></div></form></div>'
+}
+function outcomePane(c){
+ return '<div class="panel"><h2>۴. Qualification / رزرو / تبدیل</h2><p>نتیجه تا زمان اعتبارسنجی مستقل «گزارش‌شده» می‌ماند. ثبت رزرو، ارسال دعوت‌نامه تقویم انجام نمی‌دهد.</p>'+
+ '<form id="outcomeForm"><div class="formgrid"><label>نتیجه<select name="outcome">'+opts(outcomes,c.outcome||'pending')+'</select></label>'+
+ '<label>زمان جلسه (اختیاری)<input type="datetime-local" name="when_at"></label>'+
+ '<label class="wide">شرح و مبنای نتیجه<textarea name="summary" rows="4" required placeholder="چه اتفاقی افتاده و از کجا می‌دانیم؟"></textarea></label>'+
+ '<label class="wide">لینک مدرک<input type="url" name="evidence_url" placeholder="https://..."></label>'+
+ '<label class="wide">لینک جلسه (اختیاری)<input type="url" name="meeting_url"></label></div>'+
+ '<div class="formactions"><button class="btn primary" type="submit">ثبت نتیجه گزارش‌شده</button></div></form></div>';
+}
+function handoffPane(c){
+ return '<div class="panel"><h2>۵. ارجاع به انسان یا Agent</h2><p>ارجاع، مسئول و کار بعدی را در همین پرونده ذخیره می‌کند؛ بدون ادعای dispatch به Company OS یا WorkforceOS.</p>'+
+ '<form id="handoffForm"><div class="formgrid"><label>نوع مسئول<select name="handoff_type"><option value="human">انسان</option><option value="agent">Agent موجود</option></select></label>'+
+ '<label>شناسه / نام مسئول<input name="handoff_to" required value="'+esc(c.handoff_to||c.owner||'Founder')+'"></label>'+
+ '<label class="wide">اقدام درخواستی<input name="next_action" required value="'+esc(c.next_action||'')+'" placeholder="نتیجه قابل تحویل، نه درخواست مبهم"></label>'+
+ '<label>موعد<input name="next_action_at" type="datetime-local" value="'+inputDate(c.next_action_at)+'"></label></div>'+
+ '<div class="formactions"><button class="btn primary" type="submit">ثبت ارجاع و صف کار</button></div></form></div>';
+}
+function evidencePane(c){
+ return '<div class="panel"><h2>افزودن سند یا یادداشت</h2><form id="evidenceForm"><div class="formgrid">'+
+ '<label>نوع سند<input name="kind" placeholder="call_note / screenshot / research" value="note"></label>'+
+ '<label>منبع<input name="source" placeholder="operator_report" value="operator_report"></label>'+
+ '<label class="wide">شرح واقعیت مشاهده‌شده<textarea name="summary" rows="4" required></textarea></label>'+
+ '<label class="wide">لینک مرجع<input type="url" name="reference" placeholder="https://..."></label></div>'+
+ '<div class="formactions"><button class="btn primary" type="submit">ثبت سند (تأییدنشده)</button></div></form></div>';
+}
+function draw(force){
+ var c=data.contacts.find(function(x){return x.id===selected});if(!c){closeDrawer();return}
+ var tabs={activity:'تاریخچه',profile:'پرونده',draft:'پیشنویس',confirm:'ثبت ارسال',reply:'ثبت پاسخ',outcome:'نتیجه',handoff:'ارجاع',proof:'افزودن سند'};
+ var top='<div class="drawersection"><p>'+esc(c.company)+' · '+esc(c.title||'')+' · '+statusTag(c.status)+'</p>'+
+ '<div class="toolbar"><span class="tag">مسئول: '+esc(c.owner||'Founder')+'</span><span class="tag">اقدام بعدی: '+esc(c.next_action||'—')+'</span><span class="tag">'+fmt(c.next_action_at)+'</span></div></div>'+
+ '<div class="drawersection tabs">'+Object.keys(tabs).map(function(k){return '<button class="'+(detailTab===k?'active':'')+'" data-detail-tab="'+k+'">'+tabs[k]+'</button>'}).join('')+'</div>';
+ var body=detailTab==='profile'?'<div class="panel">'+detailForm(c)+'</div>':
+ detailTab==='draft'?draftPane(c):detailTab==='confirm'?confirmPane(c,force):
+ detailTab==='reply'?replyPane(c):detailTab==='outcome'?outcomePane(c):
+ detailTab==='handoff'?handoffPane(c):detailTab==='proof'?evidencePane(c):contactActivity(c);
+ el('drawerTitle').textContent=c.name||c.company;el('drawerBody').innerHTML=top+body;el('drawerBack').classList.add('open');document.body.style.overflow='hidden'
+}
+async function submit(e){
+ var f=e.target;if(!f||!f.id)return;
+ var handled=['contactForm','campaignForm','campaignEditForm','detailForm','draftForm','sendForm','replyForm','outcomeForm','handoffForm','evidenceForm'];
+ if(!handled.includes(f.id))return;e.preventDefault();if(busy)return;busy=true;
+ var btn=f.querySelector('[type=submit]');if(btn)btn.disabled=true;
+ try{
+  var b=formObj(f),path='',method='POST';
+  if(f.id==='contactForm')path='/api/fa/contacts';
+  if(f.id==='campaignForm')path='/api/fa/campaigns';
+  if(f.id==='campaignEditForm'){path='/api/fa/campaigns/'+f.dataset.id;method='PATCH'}
+  if(f.id==='detailForm'){path='/api/fa/contacts/'+f.dataset.id;method='PATCH'}
+  if(f.id==='draftForm'){path='/api/fa/drafts';b.prospect_id=selected}
+  if(f.id==='sendForm')path='/api/fa/messages/'+f.dataset.id+'/confirm';
+  if(f.id==='replyForm'){path='/api/fa/replies';b.prospect_id=selected}
+  if(f.id==='outcomeForm'){path='/api/fa/outcomes';b.prospect_id=selected}
+  if(f.id==='handoffForm'){path='/api/fa/handoff';b.prospect_id=selected}
+  if(f.id==='evidenceForm'){path='/api/fa/evidence';b.prospect_id=selected}
+  var result=await api(path,method,b);
+  if(f.id==='contactForm'){selected=result.id;detailTab='profile'}
+  if(f.id==='draftForm')detailTab='confirm';
+  if(f.id==='sendForm'||f.id==='replyForm'||f.id==='outcomeForm'||f.id==='evidenceForm')detailTab='activity';
+  if(f.id==='campaignEditForm'||f.id==='campaignForm')closeDrawer();
+  toast('اطلاعات با موفقیت در PostgreSQL ذخیره شد'+(result.verification?' · وضعیت: '+result.verification:''));
+  await load();
+ }catch(err){toast(err.message,true)}
+ finally{busy=false;if(btn)btn.disabled=false}
+}
+function downloadCSV(){
+ var keys=['name','company','email','title','status','owner','source','channel','campaign_id','match_quality','next_action','next_action_at','response_summary','outcome','evidence_url'];
+ function csvCell(v){var s=String(v==null?'':v);if(/^[=+\-@\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'}
+ var csv='\ufeff'+keys.join(',')+'\r\n'+data.contacts.map(function(c){return keys.map(function(k){return csvCell(c[k])}).join(',')}).join('\r\n');
+ var blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='outboundos-contacts-'+new Date().toISOString().slice(0,10)+'.csv';a.click();setTimeout(function(){URL.revokeObjectURL(url)},1000)
+}
+async function click(e){
+ var t=e.target.closest('button,[data-open]');if(!t)return;
+ if(t.dataset.close){closeDrawer();return}
+ if(t.dataset.newContact){newContact();return}
+ if(t.dataset.reload){load();return}
+ if(t.dataset.export){downloadCSV();return}
+ if(t.dataset.open){selected=t.dataset.open;detailTab='activity';draw();return}
+ if(t.dataset.detailTab){detailTab=t.dataset.detailTab;draw();return}
+ if(t.dataset.confirm){detailTab='confirm';draw(t.dataset.confirm);return}
+ if(t.dataset.campaignEdit){editCampaign(t.dataset.campaignEdit);return}
+ if(t.dataset.campaignFilter){filters.campaign=t.dataset.campaignFilter;view='contacts';render();return}
+ if(t.dataset.copy){var m=data.messages.find(function(v){return v.id===t.dataset.copy});if(m){try{await navigator.clipboard.writeText((m.proposed_subject||m.subject)+'\n\n'+(m.proposed_body||m.body));toast('پیام پیشنهادی کپی شد')}catch(err){toast('کپی ممکن نشد؛ متن را از پرونده بردارید.',true)}}return}
+ if(t.dataset.campaignToggle){
+  if(busy)return;busy=true;try{var op=t.dataset.active==='active'?'pause':'activate';await api('/api/campaigns/'+t.dataset.campaignToggle+'/'+op,'POST',{});toast('وضعیت کمپین تغییر کرد؛ هیچ پیام خودکاری ارسال نشد.');await load()}catch(err){toast(err.message,true)}finally{busy=false}return
+ }
+ if(t.dataset.view){view=t.dataset.view;render();return}
+}
+document.addEventListener('click',click);
+document.addEventListener('submit',submit);
+document.addEventListener('input',function(e){if(e.target.id==='filterText'){filters.text=e.target.value;var x=document.activeElement,at=x.selectionStart;render();var y=el('filterText');if(y){y.focus();y.setSelectionRange(at,at)}}});
+document.addEventListener('change',function(e){if(e.target.id==='filterStage'){filters.stage=e.target.value;render()}if(e.target.id==='filterOwner'){filters.owner=e.target.value;render()}if(e.target.id==='filterCampaign'){filters.campaign=e.target.value;render()}});
+el('drawerBack').addEventListener('click',function(e){if(e.target===this)closeDrawer()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDrawer()});
+load();
+})();
+</script>
+</body></html>

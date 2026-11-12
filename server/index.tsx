@@ -9,6 +9,7 @@ import { initBridge, enqueueBridge, flushBridge, bridgeStatus } from "./bridge.t
 import { validateSalesMission } from "./contract.ts";
 import { eligibleForSend,sendableCampaign,dailyCapacity,webhookEventId,boundedBody } from "./safety.ts";
 import { LANDING_PAGE, PRIVACY_PAGE, TERMS_PAGE } from "./marketing.ts";
+import { initFieldOps, handleFieldOps } from "./fieldops.ts";
 
 const db=postgres(Bun.env.DATABASE_URL||"",{max:7,connect_timeout:10,idle_timeout:15});
 const PORT=Number(Bun.env.PORT||8080);
@@ -64,6 +65,7 @@ const migration=(async()=>{
  await db.unsafe("CREATE TABLE IF NOT EXISTS os_meetings (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, prospect_id TEXT NOT NULL, when_at TIMESTAMPTZ NOT NULL, url TEXT NOT NULL DEFAULT '', notes TEXT NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT now())");
  await db.unsafe("CREATE TABLE IF NOT EXISTS os_webhook_events (id TEXT PRIMARY KEY, type TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now())");
  await initBridge(db);
+ await initFieldOps(db);
  await db.unsafe("CREATE TABLE IF NOT EXISTS os_missions (workspace_id TEXT NOT NULL, idempotency_key TEXT NOT NULL, work_packet_id TEXT NOT NULL, campaign_id TEXT NOT NULL, receipt_id TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY(workspace_id,idempotency_key))");
  console.log("OUTBOUND_V2_SCHEMA_OK");
 })();
@@ -385,6 +387,7 @@ async function handler(req:Request):Promise<Response>{
  if(path==="/terms"&&method==="GET")return publicHtml(TERMS_PAGE);
  if(path==="/robots.txt"&&method==="GET")return new Response("User-agent: *\nAllow: /\nDisallow: /app\nDisallow: /api/\nSitemap: "+url.origin+"/sitemap.xml\n",{headers:{"content-type":"text/plain; charset=utf-8"}});
  if(path==="/sitemap.xml"&&method==="GET")return new Response('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>'+url.origin+'/</loc></url><url><loc>'+url.origin+'/privacy</loc></url><url><loc>'+url.origin+'/terms</loc></url></urlset>',{headers:{"content-type":"application/xml; charset=utf-8"}});
+ if((path==="/fa"||path==="/fa/")&&method==="GET")return new Response(await Bun.file(new URL("./fa.html",import.meta.url)).text(),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","content-security-policy":"default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'","x-content-type-options":"nosniff","referrer-policy":"same-origin"}});
  if(path==="/app"&&method==="GET")return new Response(PAGE,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","content-security-policy":"default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'","referrer-policy":"same-origin","x-content-type-options":"nosniff"}});
  if(!allow(req))return fail("Rate limited. Retry shortly.",429);
  await migration;
@@ -495,6 +498,7 @@ async function handler(req:Request):Promise<Response>{
  const session=await getSession(req,path==="/api/state");
  if(!session)return fail("Session expired. Reload the page to continue.",401);
  const w=session.workspace,api=path.slice(5);
+ if(api.startsWith("fa/"))return withCookie(await handleFieldOps(req,db,w,api,readJson),session);
  if(api==="state"&&method==="GET"){
   const [workspace,leads,campaigns,messages,events,meetings]=await Promise.all([
    db.unsafe("SELECT * FROM os_workspaces WHERE id=$1",[w]),
