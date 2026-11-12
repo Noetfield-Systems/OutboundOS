@@ -467,19 +467,36 @@ function inbox(){
  '<section class="panel"><div class="panelhead"><h2>پاسخ‌های ثبت‌شده</h2><span class="tag">'+N(replies.length)+' پیام</span></div>'+
  (replies.length?'<div class="stack">'+replies.map(function(m){var c=data.contacts.find(function(x){return x.id===m.prospect_id});return '<div class="item"><div><strong>'+esc(c?c.name||c.company:'مخاطب')+'</strong> <span class="tag '+(m.status==='received'?'good':'warn')+'">'+(m.status==='received'?'دریافت provider':'ثبت دستی')+'</span><p>'+esc((m.actual_body||m.body||'').slice(0,250))+'</p><small>'+fmt(m.occurred_at||m.created_at)+' · '+esc(channels[m.channel]||'')+'</small></div><button class="btn tiny" data-open="'+esc(m.prospect_id)+'">پیگیری</button></div>'}).join('')+'</div>':empty('هنوز پاسخی ثبت نشده','در پرونده مخاطب می‌توانید پاسخ واقعی را همراه با منبع و سند ثبت کنید.'))+'</section>';
 }
+
 function analytics(){
- var m=data.metrics,den=Math.max(1,m.contacted),stageCounts={};
+ var m=data.metrics,stageCounts={},channelRows=[],campaignRows=[];
  data.contacts.forEach(function(c){stageCounts[c.status]=(stageCounts[c.status]||0)+1});
- return heading('نرخ پاسخ و تبدیل','اعداد از رکوردهای workspace محاسبه شده‌اند؛ گزارش انسانی مستقل از تأیید provider و verifier است.')+kpi()+
- '<div class="grid"><section class="panel"><h2>شاخص‌های واقعی</h2><div class="stack">'+
- '<div class="item"><strong>نرخ پاسخ از تماس‌های ثبت‌شده</strong><strong>'+N(m.reply_rate)+'٪</strong></div>'+
- '<div class="item"><strong>نسبت گفت‌وگو به مخاطب</strong><strong>'+N(Math.round(100*m.booked/Math.max(1,m.contacts)))+'٪</strong></div>'+
- '<div class="item"><strong>فرصت واجد شرایط</strong><strong>'+N(m.qualified)+'</strong></div>'+
- '<div class="item"><strong>تبدیل گزارش‌شده</strong><strong>'+N(m.converted_reported)+'</strong></div>'+
- '<div class="item"><strong>تبدیل با تأیید مستقل</strong><strong>'+N(m.converted_verified)+'</strong></div></div>'+
- '<p class="form-note">مخرج نرخ پاسخ: مخاطبان یکتای دارای ارسال ثبت‌شده؛ صورت: مخاطبان یکتای دارای پاسخ ثبت‌شده. پیام دستی فاقد تأیید ارسال از کانال است.</p></section>'+
- '<section class="panel"><h2>توزیع مراحل</h2><div class="stack">'+Object.keys(stageCounts).map(function(k){return '<div class="item"><span>'+esc(stages[k]||k)+'</span><strong>'+N(stageCounts[k])+'</strong></div>'}).join('')+'</div></section></div>';
+ function summary(leads){
+  var ids=new Set(leads.map(function(p){return p.id}));
+  var sentIds=new Set(data.messages.filter(function(x){return ids.has(x.prospect_id)&&x.direction==='outbound'&&['manually_sent','sent','delivered','unknown'].includes(x.status)}).map(function(x){return x.prospect_id}));
+  var repliedIds=new Set(data.messages.filter(function(x){return ids.has(x.prospect_id)&&sentIds.has(x.prospect_id)&&x.direction==='inbound'&&['received','reported_received'].includes(x.status)}).map(function(x){return x.prospect_id}));
+  var reported=leads.filter(function(x){return x.outcome==='converted'||x.status==='won'}).length;
+  return {contacts:leads.length,contacted:sentIds.size,replied:repliedIds.size,reported:reported,rate:sentIds.size?Math.round(100*repliedIds.size/sentIds.size):0};
+ }
+ Object.keys(channels).forEach(function(key){var arr=data.contacts.filter(function(c){return c.channel===key});if(arr.length)channelRows.push({name:channels[key],...summary(arr)})});
+ data.campaigns.forEach(function(c){var arr=data.contacts.filter(function(p){return p.campaign_id===c.id});campaignRows.push({name:c.name,...summary(arr)})});
+ channelRows.sort(function(a,b){return b.contacted-a.contacted});
+ campaignRows.sort(function(a,b){return b.contacted-a.contacted});
+ var gridTable=function(rows){return rows.length?'<div class="tablewrap"><table class="data"><thead><tr><th>منبع</th><th>مخاطب</th><th>تماس</th><th>پاسخ</th><th>نرخ پاسخ</th><th>تبدیل گزارش‌شده</th></tr></thead><tbody>'+
+ rows.map(function(x){return '<tr><td><strong>'+esc(x.name)+'</strong></td><td>'+N(x.contacts)+'</td><td>'+N(x.contacted)+'</td><td>'+N(x.replied)+'</td><td>'+N(x.rate)+'٪</td><td>'+N(x.reported)+'</td></tr>'}).join('')+'</tbody></table></div>':
+ empty('هنوز داده‌ای برای مقایسه نیست','با ثبت تماس و پاسخ واقعی، عملکرد کانال‌ها در اینجا محاسبه می‌شود.')};
+ return heading('تحلیل عملکرد و رشد','ببینید کدام کمپین، کانال و اقدام به پاسخ و تبدیل واقعی منتهی می‌شود.')+
+ kpi()+'<div class="metricstrip"><span class="tag good">نرخ پاسخ: '+N(m.reply_rate)+'٪</span>'+
+ '<span class="tag">فرصت واجد شرایط: '+N(m.qualified)+'</span><span class="tag">تأیید مستقل: '+N(m.converted_verified)+'</span>'+
+ '<span class="tag warn">تبدیل خوداظهاری: '+N(m.converted_reported)+'</span></div>'+
+ '<div class="notice"><strong>تعریف شاخص‌ها:</strong> نرخ پاسخ = تعداد مخاطبان یکتایی که هم ارسال ثبت‌شده و هم پاسخ ثبت‌شده دارند، تقسیم بر مخاطبان یکتای دارای ارسال ثبت‌شده. ارسال دستی و پاسخ دستی خوداظهاری هستند؛ تبدیل تأییدشده نیاز به receipt مستقل دارد.</div>'+
+ '<div class="grid"><section class="panel"><div class="panelhead"><h2>بازده هر کانال</h2><span class="tag">بدون داده ساختگی</span></div>'+gridTable(channelRows)+'</section>'+
+ '<section class="panel"><div class="panelhead"><h2>توزیع مراحل</h2></div><div class="stack">'+
+ Object.keys(stageCounts).map(function(k){return '<div class="item"><span>'+esc(stages[k]||k)+'</span><strong>'+N(stageCounts[k])+'</strong></div>'}).join('')+
+ '</div></section></div>'+
+ '<section class="panel"><div class="panelhead"><h2>مقایسه کمپین‌ها</h2><span class="tag">'+N(campaignRows.length)+' کمپین</span></div>'+gridTable(campaignRows)+'</section>';
 }
+
 function evidences(){
  var rows=data.evidence||[];
  return heading('دفتر شواهد','پیشنویس، ادعای ارسال، پاسخ، نتیجه و تأیید مستقل هرکدام وضعیت مستقل خود را دارند.')+
@@ -533,6 +550,10 @@ function contactActivity(c){
   (m.evidence_url?'<a target="_blank" rel="noopener noreferrer" href="'+esc(m.evidence_url)+'">مشاهده سند</a>':'')+
   (m.status==='draft'?'<div class="formactions"><button class="btn tiny primary" data-confirm="'+esc(m.id)+'">ثبت ارسال واقعی</button></div>':'')+'</div>'
  }).join('');
+ var actions=(data.completed_actions||[]).filter(function(a){return a.prospect_id===c.id});
+ var actionHistory=actions.length?'<div class="panel"><div class="panelhead"><h2>کارهای واقعاً تکمیل‌شده</h2><span class="tag">'+N(actions.length)+' ثبت</span></div><div class="timeline">'+
+ actions.map(function(a){return '<div class="event"><h3>تکمیل: '+esc(a.action_text)+'</h3><small>'+fmt(a.completed_at)+' · '+esc(a.actor)+'</small>'+
+ '<p>اقدام بعدی: '+esc(a.next_action||'تعیین نشده')+' · '+fmt(a.next_action_at)+'</p></div>'}).join('')+'</div></div>':'';
  return '<div class="panel"><h2>تاریخچه پیام و پاسخ</h2>'+(mm.length?'<div class="timeline">'+list+'</div>':empty('هیچ پیامی ثبت نشده','از تب «پیشنویس» پیام شخصی‌سازی‌شده بسازید.'))+'</div>'+
  '<div class="panel"><h2>شواهد این مخاطب</h2>'+(ev.length?'<div class="stack">'+ev.map(function(e){return '<div class="event"><strong>'+esc(e.kind)+'</strong><p>'+esc(e.summary)+'</p><small>'+esc(e.verification)+' · '+fmt(e.created_at)+'</small></div>'}).join('')+'</div>':empty('هنوز سندی وجود ندارد','ثبت پاسخ، ارسال دستی و نتیجه، سند گزارش‌شده ایجاد می‌کند.'))+'</div>';
 }
