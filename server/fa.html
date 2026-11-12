@@ -591,13 +591,76 @@ function evidencePane(c){
  '<label class="wide">لینک مرجع<input type="url" name="reference" placeholder="https://..."></label></div>'+
  '<div class="formactions"><button class="btn primary" type="submit">ثبت سند (تأییدنشده)</button></div></form></div>';
 }
+
+function actionPane(c){
+ if(!c.next_action)return '<div class="panel">'+empty('اقدام باز وجود ندارد','از تب «پرونده»، اقدام بعدی و موعد آن را تعیین کنید.')+'</div>';
+ return '<div class="panel"><h2>تکمیل کار و تعیین قدم بعدی</h2>'+
+ '<p>انجام یک کار را ثبت کنید تا در سابقه واقعی باقی بماند. زمان یا متن بعدی را فقط در صورت مشخص‌بودن وارد کنید.</p>'+
+ '<div class="notice"><strong>کار فعلی:</strong> '+esc(c.next_action)+'<br><small>موعد: '+fmt(c.next_action_at)+' · مالک: '+esc(c.owner||'Founder')+'</small></div>'+
+ '<form id="completeActionForm"><input type="hidden" name="expected_action" value="'+esc(c.next_action)+'">'+
+ '<input type="hidden" name="expected_due_at" value="'+esc(c.next_action_at||'')+'"><div class="formgrid">'+
+ '<label class="wide">اقدام بعدی پس از تکمیل<input name="next_action" placeholder="در صورت نیاز، اقدام بعدی را وارد کنید"></label>'+
+ '<label>موعد اقدام بعدی<input name="next_action_at" type="datetime-local"></label></div>'+
+ '<div class="formactions"><button class="btn primary" type="submit">ثبت انجام کار و ذخیره</button></div></form></div>';
+}
+function savedViewDrawer(){
+ var defined=['text','stage','owner','campaign','due','sort'].filter(function(k){return filters[k]&&filters[k]!=='all'});
+ openDrawer('ذخیره نمای کاری','<div class="panel drawersection"><h2>نمای خود را ذخیره کنید</h2><p>نما روی همین مخاطبان اعمال می‌شود؛ هیچ رکوردی کپی نمی‌شود.</p>'+
+ '<p><span class="tag">'+N(contactFiltered().length)+' مخاطب با فیلتر فعلی</span> <span class="tag">'+N(defined.length)+' فیلتر فعال</span></p>'+
+ '<form id="savedViewForm"><label>نام نما<input name="name" maxlength="65" minlength="2" required autofocus placeholder="مثلاً پیگیری‌های Founder یا مخاطبان این هفته"></label>'+
+ '<div class="formactions"><button class="btn primary" type="submit">ذخیره نمای قابل استفاده مجدد</button></div></form></div>');
+}
+function importDrawer(){
+ importPreview=null;
+ openDrawer('ورود مخاطبان واقعی از CSV','<div class="panel drawersection"><h2>ورود دسته‌ای بدون داده آزمایشی</h2>'+
+ '<p>فایل CSV واقعی را با ستون‌های name, company, email, title, source, owner, channel, next_action, next_action_at و match_quality وارد کنید. تنها نام شخص یا شرکت ضروری است.</p>'+
+ '<div class="notice">در هر بار حداکثر ۱۰۰ مخاطب. موارد تکراری، نامعتبر و افزوده‌شده به‌صورت جدا گزارش می‌شوند. ورود CSV هیچ پیامی ارسال نمی‌کند.</div>'+
+ '<label>انتخاب فایل CSV<input type="file" id="importCsvFile" accept=".csv,text/csv" aria-label="انتخاب فایل CSV"></label>'+
+ '<div id="importPreview" class="section-gap"></div>'+
+ '<form id="importCsvForm"><div class="formactions"><button id="importSubmit" class="btn primary" type="submit" disabled>ثبت مخاطبان بررسی‌شده</button></div></form></div>');
+}
+function parseCsv(text){
+ var rows=[],row=[],field='',quote=false;
+ text=String(text||'').replace(/^\uFEFF/,'');
+ for(var i=0;i<text.length;i++){
+  var ch=text[i];
+  if(ch==='"'){if(quote&&text[i+1]==='"'){field+='"';i++}else quote=!quote}
+  else if(ch===','&&!quote){row.push(field);field=''}
+  else if((ch==='\n'||ch==='\r')&&!quote){if(ch==='\r'&&text[i+1]==='\n')i++;row.push(field);field='';if(row.some(function(v){return v.trim()}))rows.push(row);row=[]}
+  else field+=ch;
+ }
+ if(quote)throw Error('CSV دارای نقل‌قول بسته‌نشده است.');
+ row.push(field);if(row.some(function(v){return v.trim()}))rows.push(row);
+ if(rows.length<2)throw Error('فایل باید سطر عنوان و حداقل یک مخاطب داشته باشد.');
+ if(rows.length>101)throw Error('هر بار حداکثر ۱۰۰ مخاطب وارد کنید.');
+ var names={name:'name',company:'company',email:'email',title:'title',source:'source',owner:'owner',channel:'channel',
+ next_action:'next_action',next_action_at:'next_action_at',match_quality:'match_quality',source_url:'source_url',
+ نام:'name',شرکت:'company',ایمیل:'email',سمت:'title',منبع:'source',مسئول:'owner',کانال:'channel',اقدام:'next_action',موعد:'next_action_at'};
+ var header=rows.shift().map(function(x){return names[x.trim().toLowerCase()]||''});
+ if(!header.includes('name')&&!header.includes('company'))throw Error('حداقل ستون name یا company ضروری است.');
+ return rows.map(function(columns){
+  var record={};header.forEach(function(h,i){if(h)record[h]=(columns[i]||'').trim()});return record;
+ });
+}
+async function previewCsvFile(file){
+ if(!file)return;
+ if(file.size>200000)throw Error('فایل CSV از سقف ۲۰۰ کیلوبایت بزرگ‌تر است.');
+ importPreview=parseCsv(await file.text());
+ var preview=importPreview.slice(0,5),body=preview.map(function(r){
+  return '<div class="item"><div><strong>'+esc(r.name||r.company||'نامشخص')+'</strong><p>'+esc(r.company||'')+' · '+esc(r.email||'بدون ایمیل')+' · '+esc(r.source||'csv-import')+'</p></div></div>';
+ }).join('');
+ el('importPreview').innerHTML='<div class="panel compact"><h3>پیش‌نمایش · '+N(importPreview.length)+' مخاطب</h3>'+body+
+ '<p class="form-note">این‌ها فقط پیش‌نمایش فایل شما هستند و هنوز وارد پایگاه داده نشده‌اند.</p></div>';
+ el('importSubmit').disabled=false;
+}
+
 function draw(force){
  var c=data.contacts.find(function(x){return x.id===selected});if(!c){closeDrawer();return}
- var tabs={activity:'تاریخچه',profile:'پرونده',draft:'پیشنویس',confirm:'ثبت ارسال',reply:'ثبت پاسخ',outcome:'نتیجه',handoff:'ارجاع',proof:'افزودن سند'};
+ var tabs={activity:'تاریخچه',profile:'پرونده',action:'انجام کار',draft:'پیشنویس',confirm:'ثبت ارسال',reply:'ثبت پاسخ',outcome:'نتیجه',handoff:'ارجاع',proof:'افزودن سند'};
  var top='<div class="drawersection"><p>'+esc(c.company)+' · '+esc(c.title||'')+' · '+statusTag(c.status)+'</p>'+
  '<div class="toolbar"><span class="tag">مسئول: '+esc(c.owner||'Founder')+'</span><span class="tag">اقدام بعدی: '+esc(c.next_action||'—')+'</span><span class="tag">'+fmt(c.next_action_at)+'</span></div></div>'+
  '<div class="drawersection tabs">'+Object.keys(tabs).map(function(k){return '<button class="'+(detailTab===k?'active':'')+'" data-detail-tab="'+k+'">'+tabs[k]+'</button>'}).join('')+'</div>';
- var body=detailTab==='profile'?'<div class="panel">'+detailForm(c)+'</div>':
+ var body=detailTab==='profile'?'<div class="panel">'+detailForm(c)+'</div>':detailTab==='action'?actionPane(c):
  detailTab==='draft'?draftPane(c):detailTab==='confirm'?confirmPane(c,force):
  detailTab==='reply'?replyPane(c):detailTab==='outcome'?outcomePane(c):
  detailTab==='handoff'?handoffPane(c):detailTab==='proof'?evidencePane(c):contactActivity(c);
@@ -605,7 +668,7 @@ function draw(force){
 }
 async function submit(e){
  var f=e.target;if(!f||!f.id)return;
- var handled=['contactForm','campaignForm','campaignEditForm','detailForm','draftForm','sendForm','replyForm','outcomeForm','handoffForm','evidenceForm'];
+ var handled=['contactForm','campaignForm','campaignEditForm','detailForm','draftForm','sendForm','replyForm','outcomeForm','handoffForm','evidenceForm','completeActionForm','savedViewForm','importCsvForm'];
  if(!handled.includes(f.id))return;e.preventDefault();if(busy)return;busy=true;
  var btn=f.querySelector('[type=submit]');if(btn)btn.disabled=true;
  try{
