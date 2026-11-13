@@ -4,13 +4,13 @@ import {PRIVACY_PAGE,TERMS_PAGE} from "../server/marketing.ts";
 test("new public launch surface is real and independent of any demo statistics",()=>{
  expect(PUBLIC_NEXT).toContain('id="kitForm"');
  expect(PUBLIC_NEXT).toContain('id="kitOutput"');
- expect(PUBLIC_NEXT).toContain('id="saveKit"');
+ expect(PUBLIC_NEXT).toContain("save.id='saveKit'");
  expect(PUBLIC_NEXT).toContain('id="interestForm"');
  expect(PUBLIC_NEXT).toContain('id="pricing"');
  expect(PUBLIC_NEXT).toContain('id="mobileMenu"');
  expect(PUBLIC_NEXT).toContain('id="faq"');
- expect(PUBLIC_NEXT).toContain('"/api/fa/campaigns"'.replaceAll('"','').slice(1,-1));
- expect(PUBLIC_NEXT).toContain('os_growth_leads'.replace('os_growth_leads','/api/public/interest'));
+ expect(PUBLIC_NEXT).toContain('/api/fa/campaigns');
+ expect(PUBLIC_NEXT).toContain('/api/public/interest');
  expect(PUBLIC_NEXT).toContain('No fabricated contacts or conversion numbers.');
  expect(PUBLIC_NEXT).not.toMatch(/[0-9,]{4,} customers|guaranteed meetings|fake leads|trusted by 50,000/i);
 });
