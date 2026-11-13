@@ -41,7 +41,7 @@ test('Free kit can be persisted to a real PostgreSQL draft campaign and opened',
    page.waitForResponse(x=>x.url().includes('/api/fa/campaigns')&&x.request().method()==='POST'),
    page.locator('#saveKit').click()
  ]);
- expect(response.status(),JSON.stringify(await response.json())).toBe(201);
+ expect(response.status()).toBe(201);
  await expect(page).toHaveURL(/\/fa/);
  const stateResponse=await page.request.get('/api/fa/state');
  expect(stateResponse.ok()).toBe(true);
