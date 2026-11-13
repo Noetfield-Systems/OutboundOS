@@ -19,7 +19,7 @@ test('Visual-first premium Persian landing is honest, RTL and uses live actions'
  await expect(page.locator('.product-stage')).toBeVisible();
  await expect(page.locator('.float-card.plan')).toBeVisible();
  await expect(page.locator('#interestForm')).toBeAttached();
- await expect(page.locator('.preview-notice')).toContainText('داده واقعی');
+ await expect(page.locator('.preview-notice')).toContainText('ساختگی');
  await expect(page.locator('body')).not.toContainText('Guaranteed meetings');
  await expect(page.locator('body')).not.toContainText('Illustrative product walkthrough');
  await expect(page.locator('#kitOutput')).toBeHidden();
@@ -135,7 +135,7 @@ test('Image-first design: desktop composition, legible hero and working preview 
  await expect(page.locator('.product-stage')).toBeVisible();
  await expect(page.locator('.mini-metrics .mini-metric')).toHaveCount(4);
  await expect(page.locator('.board .lane')).toHaveCount(5);
- await expect(page.locator('.preview-notice')).toContainText('داده واقعی');
+ await expect(page.locator('.preview-notice')).toContainText('ساختگی');
  const layout=await page.evaluate(()=>{
    const hero=document.querySelector('#heroTitle')?.getBoundingClientRect(),stage=document.querySelector('.product-stage')?.getBoundingClientRect();
    return {heroWidth:hero?.width,stageWidth:stage?.width,stageLeft:stage?.left,stageRight:stage?.right,viewport:innerWidth,scroll:document.documentElement.scrollWidth};
