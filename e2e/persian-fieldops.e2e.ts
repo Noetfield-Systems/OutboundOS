@@ -93,7 +93,15 @@ test('Persian pilot: another guest workspace cannot read first workspace records
     await a.locator('.topactions [data-new-contact]').click();
     await a.locator('#contactForm [name="company"]').fill('Synthetic Workspace Isolation');
     await a.locator('#contactForm [name="source"]').fill('e2e-only');
-    await a.locator('#contactForm button[type="submit"]').click();
+    const [newContactResponse]=await Promise.all([
+      a.waitForResponse(r=>r.url().includes('/api/fa/contacts')&&r.request().method()==='POST'),
+      a.locator('#contactForm button[type="submit"]').click()
+    ]);
+    expect(newContactResponse.status()).toBe(201);
+    await expect.poll(async()=>{
+      const state=await (await a.request.get('/api/fa/state')).json();
+      return state.contacts.some((c:any)=>c.company==='Synthetic Workspace Isolation');
+    }).toBe(true);
     const aState=await (await a.request.get('/api/fa/state')).json();
     const bState=await (await b.request.get('/api/fa/state')).json();
     expect(aState.contacts.some((c:any)=>c.company==='Synthetic Workspace Isolation')).toBe(true);
