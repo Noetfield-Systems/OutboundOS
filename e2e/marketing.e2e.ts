@@ -124,3 +124,36 @@ test('User input is rendered as text rather than HTML; no fake prospect injected
  expect(await page.locator('#kitOutput img').count()).toBe(0);
  await expect(page.locator('#kitOutput')).toContainText('<img src=x onerror=alert(1)>');
 });
+
+
+test('Image-first design: desktop composition, legible hero and working preview frame',async ({page})=>{
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto('/');
+ await expect(page.locator('html')).toHaveAttribute('dir','rtl');
+ await expect(page.locator('#heroTitle')).toContainText('مشتری واقعی');
+ await expect(page.locator('.hero-eyebrow')).toBeVisible();
+ await expect(page.locator('.product-stage')).toBeVisible();
+ await expect(page.locator('.mini-metrics .mini-metric')).toHaveCount(4);
+ await expect(page.locator('.board .lane')).toHaveCount(5);
+ await expect(page.locator('.preview-notice')).toContainText('داده واقعی');
+ const layout=await page.evaluate(()=>{
+   const hero=document.querySelector('#heroTitle')?.getBoundingClientRect(),stage=document.querySelector('.product-stage')?.getBoundingClientRect();
+   return {heroWidth:hero?.width,stageWidth:stage?.width,stageLeft:stage?.left,stageRight:stage?.right,viewport:innerWidth,scroll:document.documentElement.scrollWidth};
+ });
+ expect(layout.stageWidth).toBeGreaterThan(900);
+ expect(layout.stageLeft).toBeGreaterThanOrEqual(0);
+ expect(layout.stageRight).toBeLessThanOrEqual(layout.viewport+2);
+ expect(layout.scroll).toBeLessThanOrEqual(layout.viewport+2);
+ await page.screenshot({path:'test-results/image-first-hero-desktop.png',fullPage:false});
+});
+
+test('Image-first design: mobile hero, stage, CTA remain reachable without horizontal scroll',async ({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.goto('/');
+ await expect(page.locator('#heroTitle')).toBeVisible();
+ await expect(page.locator('.hero-buttons .primary')).toBeVisible();
+ await expect(page.locator('.product-stage')).toBeVisible();
+ const x=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:innerWidth}));
+ expect(x.width).toBeLessThanOrEqual(x.viewport+2);
+ await page.screenshot({path:'test-results/image-first-hero-mobile.png',fullPage:false});
+});
