@@ -10,13 +10,16 @@ async function createKit(page:any){
  await expect(page.locator('#kitOutput')).toHaveClass(/visible/);
 }
 
-test('Public home is a real product-led landing, not an invented dashboard',async ({page})=>{
+test('Visual-first premium Persian landing is honest, RTL and uses live actions',async ({page})=>{
  await page.goto('/');
- await expect(page).toHaveTitle(/Turn your offer into real sales conversations/);
- await expect(page.getByRole('heading',{level:1})).toContainText('Your first ten customers');
+ await expect(page).toHaveTitle(/از اولین پیام تا اولین مشتری واقعی/);
+ await expect(page.getByRole('heading',{level:1})).toContainText('مشتری واقعی');
  await expect(page.locator('#kitForm')).toBeVisible();
+ await expect(page.locator('html')).toHaveAttribute('dir','rtl');
+ await expect(page.locator('.product-stage')).toBeVisible();
+ await expect(page.locator('.float-card.plan')).toBeVisible();
  await expect(page.locator('#interestForm')).toBeAttached();
- await expect(page.getByText('No fabricated contacts or conversion numbers.')).toBeVisible();
+ await expect(page.locator('.preview-notice')).toContainText('داده واقعی');
  await expect(page.locator('body')).not.toContainText('Guaranteed meetings');
  await expect(page.locator('body')).not.toContainText('Illustrative product walkthrough');
  await expect(page.locator('#kitOutput')).toBeHidden();
@@ -27,9 +30,9 @@ test('Live free tool generates editable text using only user-provided inputs',as
  await expect(page.locator('#kitOutput')).toContainText('Property managers in Vancouver');
  await expect(page.locator('#kitOutput')).toContainText('Maintenance tickets are lost');
  await expect(page.locator('#kitOutput .draft-box')).toHaveCount(3);
- await expect(page.locator('#kitOutput')).toContainText('Day 7');
+ await expect(page.locator('#kitOutput')).toContainText('روز 7');
  await expect(page.locator('#kitOutput')).toContainText('Our pilot uses a single work order inbox');
- await expect(page.locator('#kitOutput')).toContainText('No prospect data, sending or verified results were generated.');
+ await expect(page.locator('#kitOutput')).toContainText('هیچ مخاطب، ارسال یا نتیجه تأییدشده‌ای تولید نشده است.');
  await expect(page.locator('#downloadKit')).toBeVisible();
  await expect(page.locator('#exportTemplate')).toBeVisible();
  await page.screenshot({path:'test-results/product-led-desktop.png',fullPage:true});
@@ -65,13 +68,13 @@ test('Waitlist saves real consent record; no payment or fake queue position',asy
    page.locator('#interestSubmit').click()
  ]);
  expect(response.ok()).toBe(true);
- await expect(page.getByRole('dialog')).toContainText('Request received');
+ await expect(page.getByRole('dialog')).toContainText('درخواست ثبت شد');
  await expect(page.getByRole('dialog')).toContainText('No charge was made');
 });
 
 test('Free workspace CTA opens a real guest workspace',async ({page})=>{
  await page.goto('/');
- await page.locator('.headright').getByRole('link',{name:/Start free/}).click();
+ await page.locator('.nav-actions').getByRole('link',{name:'ورود'}).click();
  await expect(page).toHaveURL(/\/app/);
  await expect(page.locator('#accountType')).toContainText('Instant workspace');
 });
@@ -81,10 +84,10 @@ test('Mobile responsive: nav, tool, pricing, no horizontal overflow',async ({pag
  await page.goto('/');
  await page.locator('#menuToggle').click();
  await expect(page.locator('#mobileMenu')).toBeVisible();
- await page.locator('#mobileMenu').getByRole('link',{name:'Pricing'}).click();
+ await page.locator('#mobileMenu').getByRole('link',{name:'قیمت‌گذاری'}).click();
  await expect(page).toHaveURL(/#pricing$/);
  await expect(page.locator('#mobileMenu')).toBeHidden();
- await expect(page.locator('#pricing')).toContainText('Free workspace');
+ await expect(page.locator('#pricing')).toContainText('Free Workspace');
  const b=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:innerWidth}));
  expect(b.width).toBeLessThanOrEqual(b.viewport+2);
  await page.locator('#offerInput').fill('A simple booking service for local homeowners');
@@ -102,7 +105,7 @@ test('FAQ, legal and public playbook alias remain available',async ({page})=>{
  await expect(page.locator('#faq details')).toHaveCount(6);
  await page.locator('#faq details').first().locator('summary').click();
  await expect(page.locator('#faq details').first()).toHaveAttribute('open','');
- await page.getByRole('link',{name:'Privacy'}).click();
+ await page.getByRole('link',{name:'حریم خصوصی'}).click();
  await expect(page).toHaveURL(/\/privacy/);
  await expect(page.getByRole('heading',{name:'Privacy'})).toBeVisible();
  await page.goto('/terms');
