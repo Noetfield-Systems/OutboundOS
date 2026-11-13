@@ -77,7 +77,7 @@ test('Persona G · passkey enrollment and account recovery via virtual authentic
  await page.once('dialog',dialog=>dialog.accept());
  await page.getByRole('button',{name:'Sign out'}).click();
  await expect(page).toHaveURL(/\/$/);
- await page.locator('.headright').getByRole('link',{name:/Start free/}).click();
+ await page.locator('.nav-actions').getByRole('link',{name:'ورود'}).click();
  await expect(page).toHaveURL(/\/app(?:\?|$)/);
  await expect(page.locator('nav#nav2 button[title="Settings"]')).toBeVisible();
  await page.locator('nav#nav2 button[title="Settings"]').click();
