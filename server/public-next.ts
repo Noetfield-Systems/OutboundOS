@@ -1,5 +1,6 @@
 /** Public product-led OutboundOS landing. No synthetic leads, testimonials or claimed sales. */
-export const PUBLIC_NEXT=String.raw`<!doctype html>
+function decodeUnicodeText(html:string){return html.replace(/\\u([0-9a-fA-F]{4})/g,(_m,h)=>String.fromCharCode(Number.parseInt(h,16)));}
+export const PUBLIC_NEXT=decodeUnicodeText(String.raw`<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -165,4 +166,4 @@ report('kit_saved','guest-workspace');msg.textContent='Draft saved in PostgreSQL
 }catch(err){msg.textContent=err.message||'Please retry.';btn.disabled=false;}
 }
 })();
-</script></body></html>`;
+</script></body></html>`);
