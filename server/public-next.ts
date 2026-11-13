@@ -16,7 +16,7 @@ export const PUBLIC_NEXT=decodeUnicodeText(String.raw`<!doctype html>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap');
 :root{color-scheme:dark;--bg:#0e0d25;--surface:#181633;--stroke:#494479;--muted:#c5c2df;--text:#fff;--accent:#8157ff;--bright:#ba80ff;--pink:#dd65f5;--green:#35dca3;--radius:19px}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:"Vazirmatn",Tahoma,Arial,sans-serif;font-size:14px;line-height:1.9;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}html{scroll-behavior:smooth;overflow-x:clip;max-width:100%}body{margin:0;width:100%;max-width:100%;overflow-x:clip;background:var(--bg);color:var(--text);font-family:"Vazirmatn",Tahoma,Arial,sans-serif;font-size:14px;line-height:1.9;overflow-x:hidden;-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}
 a{color:inherit;text-decoration:none}button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #d8b7ff;outline-offset:3px}h1,h2,h3,p{margin:0}
 .wrapper{width:min(1368px,calc(100% - 88px));margin-inline:auto}
@@ -35,7 +35,7 @@ a{color:inherit;text-decoration:none}button:focus-visible,input:focus-visible,se
 .btn.tiny{padding:7px 13px;min-height:33px;font-size:11px}
 .menu-toggle{display:none;width:43px;height:43px;padding:0;font-size:24px;border-radius:12px;background:#25214d;color:#fff;border:1px solid #6657a4}
 .mobilemenu{display:none}
-.hero{min-height:389px;position:relative;padding:17px 0 0;text-align:center;isolation:isolate}
+.hero{min-height:389px;position:relative;padding:17px 0 0;overflow:clip;text-align:center;isolation:isolate}
 .hero:before{content:'';position:absolute;inset:-105px -10vw -120px;z-index:-3;pointer-events:none;background:radial-gradient(ellipse 45% 34% at 50% 57%,#5531918c 0,transparent 78%),radial-gradient(ellipse 31% 28% at 4% 47%,#a044ae50 0,transparent 86%),radial-gradient(ellipse 30% 35% at 95% 53%,#773de486 0,transparent 85%),radial-gradient(ellipse 70% 50% at 50% 0,#161530,transparent)}
 .hero:after{content:'';position:absolute;z-index:-2;pointer-events:none;inset:110px -20vw -30px;border-radius:50%;border:3px solid transparent;border-top-color:#9f5aff8b;box-shadow:0 -45px 65px -70px #dc7bff;transform:rotate(-4deg)}
 .hero-eyebrow{display:inline-flex;align-items:center;gap:14px;margin:auto;max-width:100%;padding:7px 19px;border:1px solid #7c60ba;border-radius:13px;background:linear-gradient(95deg,#36205f,#1d1b40);font-size:12px;color:#eee8ff;box-shadow:0 4px 25px #5c36cc2a}
@@ -49,16 +49,16 @@ a{color:inherit;text-decoration:none}button:focus-visible,input:focus-visible,se
 .hero-checks{display:flex;align-items:center;justify-content:center;gap:30px;flex-wrap:wrap;margin:20px auto 10px;color:#e5dff9;font-size:11px}
 .hero-checks span{display:flex;align-items:center;gap:9px}.hero-checks span:before{content:'✓';display:grid;place-items:center;background:#514381;color:#fff;width:22px;height:22px;border-radius:50%;font-family:Arial,sans-serif}
 .float-card{position:absolute;z-index:-1;border:1px solid #ac89ff9e;border-radius:19px;background:linear-gradient(145deg,#303265db,#292150da 55%,#1e193fdd);box-shadow:0 16px 38px #06051a70,inset 0 1px 0 #ffffff26;backdrop-filter:blur(16px);text-align:right}
-.float-card.plan{top:54px;right:-6%;width:246px;transform:rotate(5deg);padding:17px 18px;box-shadow:0 20px 50px #a33aff34}
+.float-card.plan{top:54px;right:0;width:246px;transform:rotate(5deg);padding:17px 18px;box-shadow:0 20px 50px #a33aff34}
 .float-card.plan strong{font-size:13px;display:block;margin-bottom:11px}
 .float-card.plan div{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid #554885;background:#221e4d;border-radius:10px;padding:8px 10px;margin-top:6px;font-size:10px}
 .float-card.plan i{color:#c9a0ff;font-style:normal}.float-card.plan i:after{content:'✓';font-family:Arial;background:#9464ee;color:#fff;border-radius:5px;padding:2px 4px}
 .float-card.plan .pending i:after{content:'';display:inline-block;width:12px;height:12px;background:none;border:1px solid #9577d6}
-.float-card.prompt{top:90px;left:-4%;width:210px;transform:rotate(-7deg);padding:16px 18px}
+.float-card.prompt{top:90px;left:0;width:210px;transform:rotate(-7deg);padding:16px 18px}
 .float-card.prompt strong{display:block;color:#e6d5ff;font-size:13px}.float-card.prompt span{color:#b5a9dd;font-size:10px}.float-card.prompt .n{font:800 31px/1.4 system-ui,Arial;color:#fff;display:block}
-.float-card.proof{top:248px;left:-5%;width:211px;transform:rotate(-6deg);padding:17px 18px}
+.float-card.proof{top:248px;left:0;width:211px;transform:rotate(-6deg);padding:17px 18px}
 .float-card.proof b{display:block;font-size:13px}.float-card.proof p{font-size:11px;color:#c9b8ec;line-height:1.8;margin-top:4px}
-.art-scene{position:relative;margin-top:5px;padding-top:12px;isolation:isolate}
+.art-scene{position:relative;margin-top:5px;padding-top:12px;isolation:isolate;overflow:clip}
 .art-scene:before{content:'';position:absolute;z-index:-2;top:4%;left:-20vw;right:-20vw;height:66%;background:radial-gradient(ellipse 60% 60% at 50% 50%,#6938d65e,transparent),linear-gradient(153deg,transparent 10%,#7439ff29 40%,transparent 65%);pointer-events:none}
 .art-scene:after{content:'';position:absolute;z-index:-1;left:-11%;right:-11%;top:8%;height:80%;border:2px solid #9555ff94;border-radius:43%;transform:rotate(-10deg);filter:drop-shadow(0 0 13px #ae64ff)}
 .integrations{position:absolute;left:-16px;top:83px;z-index:2;display:flex;flex-direction:column;gap:13px}
