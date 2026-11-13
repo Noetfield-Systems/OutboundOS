@@ -394,7 +394,7 @@ async function handler(req:Request):Promise<Response>{
  const publicHtml=(source:string)=>new Response(source,{headers:{
   "content-type":"text/html; charset=utf-8",
   "cache-control":"public, max-age=180",
-  "content-security-policy":"default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'",
+  "content-security-policy":"default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'",
   "x-content-type-options":"nosniff",
   "referrer-policy":"strict-origin-when-cross-origin",
  }});
