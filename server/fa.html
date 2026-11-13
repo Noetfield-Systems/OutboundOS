@@ -47,6 +47,9 @@ label{display:flex;flex-direction:column;gap:6px;font-size:11px;color:#b8c8d9;fo
 @media(max-width:760px){.app{display:block}aside{height:auto;position:sticky;z-index:15;top:0;padding:10px 12px;background:#0b1423ed;backdrop-filter:blur(15px);border-bottom:1px solid var(--line);border-left:0;gap:6px}.logo{padding:4px 3px}.logo strong{font-size:16px}.logo small{font-size:10px}.mark{width:30px;height:30px;font-size:17px}.nav{display:flex;flex-direction:row;overflow-x:auto;gap:5px;padding-bottom:2px}.nav button{white-space:nowrap;width:auto;flex:0 0 auto;padding:6px 10px;font-size:11px;gap:5px}.nav .ico{font-size:13px;width:auto}.sidefoot{display:none}main{padding:17px 13px 75px}.top{margin-bottom:18px}.topactions{gap:5px}h1{font-size:22px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.metric{padding:13px}.metric .value{font-size:25px}.panel{padding:16px}.formgrid{grid-template-columns:1fr}.drawer{padding:10px 14px}.drawerhead{top:-10px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 
+.nav a.navlink{display:flex;align-items:center;gap:12px;width:100%;background:transparent;color:var(--muted);text-align:right;padding:10px 13px;border:1px solid transparent;border-radius:12px;min-height:43px;font-size:12px;font-weight:600}
+.nav a.navlink:hover{background:var(--panel);color:var(--text);text-decoration:none}
+@media(max-width:760px){.nav a.navlink{white-space:nowrap;width:auto;flex:0 0 auto;min-height:34px;padding:6px 10px;font-size:11px;gap:5px}.nav a.navlink .ico{font-size:13px;width:auto}}
 /* Premium execution desk — contrast, hierarchy, focus, density and mobile ergonomics */
 :root{--bg:#090f1d;--sidebar:#0d1729;--panel:#121e31;--panel2:#1a2c42;--panel3:#1e3650;--line:#2c4057;--text:#f5f8fc;--muted:#b5c3d7;--subtle:#8b9db2;--accent:#63e2ca;--accent2:#a0b0ff;--radius:17px}
 body{font-family:"Segoe UI",Tahoma,"Noto Sans Arabic",sans-serif;font-size:14px;line-height:1.77;letter-spacing:0;overflow-x:hidden}
@@ -232,6 +235,7 @@ body.light .lead-tile:hover{background:#eaf5f5}
   <button data-view="inbox"><span class="ico">✉</span>پاسخ‌ها</button>
   <button data-view="analytics"><span class="ico">▥</span>تبدیل و تحلیل</button>
   <button data-view="evidence"><span class="ico">◇</span>شواهد</button>
+  <a href="/app" class="navlink" title="تنظیم گذرکلید و اتصال سرویس‌ها"><span class="ico">⚙</span>تنظیمات و گذرکلید</a>
  </nav>
  <div class="sidefoot"><small>هدف مرحله نخست</small><div><span class="fraction" id="goalFraction">۰ / ۱۰</span></div><div class="bar"><span id="goalBar"></span></div><p>هدف: ۱۰ کاربر تبدیل‌شده با تأیید مستقل. صرف ثبت مخاطب موفقیت نهایی نیست.</p></div>
 </aside>
