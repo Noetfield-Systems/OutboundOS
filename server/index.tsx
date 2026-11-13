@@ -358,11 +358,26 @@ async function runAgent(wid:string){
 }
 const rate=new Map<string,{count:number,time:number}>();
 function allow(req:Request){
+ // Different operation classes must not compete for the same IP quota.
+ // A normal sequence of API reads must never consume a guest's auth allowance.
  const ip=req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()||"unknown";
- const key=ip+":"+(new URL(req.url).pathname.startsWith("/api/auth")?"auth":"general");
- const now=Date.now(),b=rate.get(key);
- if(!b||now-b.time>60000){rate.set(key,{time:now,count:1});return true;}
- return ++b.count<100;
+ const path=new URL(req.url).pathname,method=req.method;
+ const bucket=path.startsWith("/api/auth/")?"auth":
+  path==="/api/public/track"?"telemetry":
+  path==="/api/public/interest"?"lead-capture":
+  path==="/api/state"&&method==="GET"?"session":
+  method==="GET"?"read":"write";
+ const limits:Record<string,number>={auth:80,telemetry:100,"lead-capture":20,session:100,read:600,write:240};
+ const key=ip+":"+bucket,now=Date.now(),windowMs=60000;
+ const previous=rate.get(key);
+ if(!previous||now-previous.time>windowMs){
+  rate.set(key,{time:now,count:1});
+  // Bound long-running process memory; only expired request buckets can be pruned.
+  if(rate.size>10000)for(const [k,v] of rate)if(now-v.time>windowMs)rate.delete(k);
+  return true;
+ }
+ previous.count++;
+ return previous.count<=limits[bucket];
 }
 async function handler(req:Request):Promise<Response>{
  const url=new URL(req.url),path=url.pathname,method=req.method;
