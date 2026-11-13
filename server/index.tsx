@@ -8,7 +8,8 @@ import { Webhook } from "svix";
 import { initBridge, enqueueBridge, flushBridge, bridgeStatus } from "./bridge.ts";
 import { validateSalesMission } from "./contract.ts";
 import { eligibleForSend,sendableCampaign,dailyCapacity,webhookEventId,boundedBody } from "./safety.ts";
-import { LANDING_PAGE, PRIVACY_PAGE, TERMS_PAGE } from "./marketing.ts";
+import { PRIVACY_PAGE, TERMS_PAGE } from "./marketing.ts";
+import { PUBLIC_NEXT } from "./public-next.ts";
 import { initFieldOps, handleFieldOps } from "./fieldops.ts";
 
 const db=postgres(Bun.env.DATABASE_URL||"",{max:7,connect_timeout:10,idle_timeout:15});
@@ -382,7 +383,7 @@ async function handler(req:Request):Promise<Response>{
   "x-content-type-options":"nosniff",
   "referrer-policy":"strict-origin-when-cross-origin",
  }});
- if(path==="/"&&method==="GET")return publicHtml(LANDING_PAGE);
+ if((path==="/"||path==="/playbook")&&method==="GET")return publicHtml(PUBLIC_NEXT);
  if(path==="/privacy"&&method==="GET")return publicHtml(PRIVACY_PAGE);
  if(path==="/terms"&&method==="GET")return publicHtml(TERMS_PAGE);
  if(path==="/robots.txt"&&method==="GET")return new Response("User-agent: *\nAllow: /\nDisallow: /app\nDisallow: /api/\nSitemap: "+url.origin+"/sitemap.xml\n",{headers:{"content-type":"text/plain; charset=utf-8"}});
@@ -398,7 +399,7 @@ async function handler(req:Request):Promise<Response>{
   if(origin&&origin!==url.origin)return fail("Origin mismatch",403);
   const b=await readJson(req);
   const eventName=trim(b.event,45),source=trim(b.source,70);
-  if(!["landing_view","hero_submit","workspace_click","growth_open","pricing_view","faq_open"].includes(eventName))return fail("Unsupported event",422);
+  if(!["landing_view","hero_submit","workspace_click","growth_open","pricing_view","faq_open","kit_generated","kit_copy","kit_download","kit_saved"].includes(eventName))return fail("Unsupported event",422);
   await db.unsafe("INSERT INTO os_growth_events(id,event,source) VALUES($1,$2,$3)",[uid(),eventName,source]);
   return J({ok:true});
  }
@@ -412,7 +413,7 @@ async function handler(req:Request):Promise<Response>{
   if(!validMail(email))return fail("Enter a valid work email address.",422);
   const website=trim(b.website,300),source=trim(b.source,60)||"growth-early-access";
   if(website&&/[<>]/.test(website))return fail("Invalid website address.",422);
-  if(!["growth-early-access","site-footer","pricing","product-tour"].includes(source))return fail("Unsupported form source.",422);
+  if(!["growth-early-access","site-footer","pricing","product-tour","playbook"].includes(source))return fail("Unsupported form source.",422);
   await db.unsafe("INSERT INTO os_growth_leads(id,email,website,source) VALUES($1,$2,$3,$4) ON CONFLICT(email) DO UPDATE SET website=excluded.website,source=excluded.source,consent_at=now()",[uid(),email,website,source]);
   await db.unsafe("INSERT INTO os_growth_events(id,event,source) VALUES($1,'interest_saved',$2)",[uid(),source]);
   return J({ok:true,received:true});
