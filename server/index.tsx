@@ -8,7 +8,8 @@ import { Webhook } from "svix";
 import { initBridge, enqueueBridge, flushBridge, bridgeStatus } from "./bridge.ts";
 import { validateSalesMission } from "./contract.ts";
 import { eligibleForSend,sendableCampaign,dailyCapacity,webhookEventId,boundedBody } from "./safety.ts";
-import { LANDING_PAGE, PRIVACY_PAGE, TERMS_PAGE } from "./marketing.ts";
+import { PRIVACY_PAGE, TERMS_PAGE } from "./marketing.ts";
+import { PUBLIC_NEXT } from "./public-next.ts";
 import { initFieldOps, handleFieldOps } from "./fieldops.ts";
 
 const db=postgres(Bun.env.DATABASE_URL||"",{max:7,connect_timeout:10,idle_timeout:15});
@@ -357,11 +358,26 @@ async function runAgent(wid:string){
 }
 const rate=new Map<string,{count:number,time:number}>();
 function allow(req:Request){
+ // Different operation classes must not compete for the same IP quota.
+ // A normal sequence of API reads must never consume a guest's auth allowance.
  const ip=req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()||"unknown";
- const key=ip+":"+(new URL(req.url).pathname.startsWith("/api/auth")?"auth":"general");
- const now=Date.now(),b=rate.get(key);
- if(!b||now-b.time>60000){rate.set(key,{time:now,count:1});return true;}
- return ++b.count<100;
+ const path=new URL(req.url).pathname,method=req.method;
+ const bucket=path.startsWith("/api/auth/")?"auth":
+  path==="/api/public/track"?"telemetry":
+  path==="/api/public/interest"?"lead-capture":
+  path==="/api/state"&&method==="GET"?"session":
+  method==="GET"?"read":"write";
+ const limits:Record<string,number>={auth:80,telemetry:100,"lead-capture":20,session:100,read:600,write:240};
+ const key=ip+":"+bucket,now=Date.now(),windowMs=60000;
+ const previous=rate.get(key);
+ if(!previous||now-previous.time>windowMs){
+  rate.set(key,{time:now,count:1});
+  // Bound long-running process memory; only expired request buckets can be pruned.
+  if(rate.size>10000)for(const [k,v] of rate)if(now-v.time>windowMs)rate.delete(k);
+  return true;
+ }
+ previous.count++;
+ return previous.count<=limits[bucket];
 }
 async function handler(req:Request):Promise<Response>{
  const url=new URL(req.url),path=url.pathname,method=req.method;
@@ -382,11 +398,11 @@ async function handler(req:Request):Promise<Response>{
   "x-content-type-options":"nosniff",
   "referrer-policy":"strict-origin-when-cross-origin",
  }});
- if(path==="/"&&method==="GET")return publicHtml(LANDING_PAGE);
+ if((path==="/"||path==="/playbook")&&method==="GET")return publicHtml(PUBLIC_NEXT);
  if(path==="/privacy"&&method==="GET")return publicHtml(PRIVACY_PAGE);
  if(path==="/terms"&&method==="GET")return publicHtml(TERMS_PAGE);
  if(path==="/robots.txt"&&method==="GET")return new Response("User-agent: *\nAllow: /\nDisallow: /app\nDisallow: /api/\nSitemap: "+url.origin+"/sitemap.xml\n",{headers:{"content-type":"text/plain; charset=utf-8"}});
- if(path==="/sitemap.xml"&&method==="GET")return new Response('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>'+url.origin+'/</loc></url><url><loc>'+url.origin+'/privacy</loc></url><url><loc>'+url.origin+'/terms</loc></url></urlset>',{headers:{"content-type":"application/xml; charset=utf-8"}});
+ if(path==="/sitemap.xml"&&method==="GET")return new Response('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>'+url.origin+'/</loc></url><url><loc>'+url.origin+'/playbook</loc></url><url><loc>'+url.origin+'/privacy</loc></url><url><loc>'+url.origin+'/terms</loc></url></urlset>',{headers:{"content-type":"application/xml; charset=utf-8"}});
  if((path==="/fa"||path==="/fa/")&&method==="GET")return new Response(await Bun.file(new URL("./fa.html",import.meta.url)).text(),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","content-security-policy":"default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'","x-content-type-options":"nosniff","referrer-policy":"same-origin"}});
  if(path==="/app"&&method==="GET")return new Response(PAGE,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","content-security-policy":"default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'","referrer-policy":"same-origin","x-content-type-options":"nosniff"}});
  if(!allow(req))return fail("Rate limited. Retry shortly.",429);
@@ -398,7 +414,7 @@ async function handler(req:Request):Promise<Response>{
   if(origin&&origin!==url.origin)return fail("Origin mismatch",403);
   const b=await readJson(req);
   const eventName=trim(b.event,45),source=trim(b.source,70);
-  if(!["landing_view","hero_submit","workspace_click","growth_open","pricing_view","faq_open"].includes(eventName))return fail("Unsupported event",422);
+  if(!["landing_view","hero_submit","workspace_click","growth_open","pricing_view","faq_open","kit_generated","kit_copy","kit_download","kit_saved"].includes(eventName))return fail("Unsupported event",422);
   await db.unsafe("INSERT INTO os_growth_events(id,event,source) VALUES($1,$2,$3)",[uid(),eventName,source]);
   return J({ok:true});
  }
@@ -412,7 +428,7 @@ async function handler(req:Request):Promise<Response>{
   if(!validMail(email))return fail("Enter a valid work email address.",422);
   const website=trim(b.website,300),source=trim(b.source,60)||"growth-early-access";
   if(website&&/[<>]/.test(website))return fail("Invalid website address.",422);
-  if(!["growth-early-access","site-footer","pricing","product-tour"].includes(source))return fail("Unsupported form source.",422);
+  if(!["growth-early-access","site-footer","pricing","product-tour","playbook"].includes(source))return fail("Unsupported form source.",422);
   await db.unsafe("INSERT INTO os_growth_leads(id,email,website,source) VALUES($1,$2,$3,$4) ON CONFLICT(email) DO UPDATE SET website=excluded.website,source=excluded.source,consent_at=now()",[uid(),email,website,source]);
   await db.unsafe("INSERT INTO os_growth_events(id,event,source) VALUES($1,'interest_saved',$2)",[uid(),source]);
   return J({ok:true,received:true});

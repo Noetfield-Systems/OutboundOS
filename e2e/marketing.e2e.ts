@@ -1,52 +1,82 @@
-import { test, expect } from '@playwright/test';
+import {test,expect} from '@playwright/test';
 
-test('A visitor sees a real marketing page instead of a private dashboard',async ({page})=>{
+async function createKit(page:any){
  await page.goto('/');
- await expect(page).toHaveTitle(/Find your next customers/);
- await expect(page.getByRole('heading',{level:1})).toContainText('Your next customers are out there');
- await expect(page.locator('#siteForm')).toBeVisible();
- await expect(page.locator('nav.navigation')).toBeVisible();
- await expect(page.getByText('Illustrative product walkthrough')).toBeVisible();
- await expect(page.locator('body')).not.toContainText('700K businesses');
+ await page.locator('#offerInput').fill('We help property managers coordinate building maintenance requests');
+ await page.locator('#buyerInput').fill('Property managers in Vancouver');
+ await page.locator('#painInput').fill('Maintenance tickets are lost between calls and technicians');
+ await page.locator('#proofInput').fill('Our pilot uses a single work order inbox');
+ await page.locator('#kitForm button[type=submit]').click();
+ await expect(page.locator('#kitOutput')).toHaveClass(/visible/);
+}
+
+test('Public home is a real product-led landing, not an invented dashboard',async ({page})=>{
+ await page.goto('/');
+ await expect(page).toHaveTitle(/Turn your offer into real sales conversations/);
+ await expect(page.getByRole('heading',{level:1})).toContainText('Your first ten customers');
+ await expect(page.locator('#kitForm')).toBeVisible();
+ await expect(page.locator('#interestForm')).toBeAttached();
+ await expect(page.getByText('No fabricated contacts or conversion numbers.')).toBeVisible();
  await expect(page.locator('body')).not.toContainText('Guaranteed meetings');
+ await expect(page.locator('body')).not.toContainText('Illustrative product walkthrough');
+ await expect(page.locator('#kitOutput')).toBeHidden();
 });
 
-test('Free workspace CTA opens a real guest account without a password',async ({page})=>{
+test('Live free tool generates editable text using only user-provided inputs',async ({page})=>{
+ await createKit(page);
+ await expect(page.locator('#kitOutput')).toContainText('Property managers in Vancouver');
+ await expect(page.locator('#kitOutput')).toContainText('Maintenance tickets are lost');
+ await expect(page.locator('#kitOutput .draft-box')).toHaveCount(3);
+ await expect(page.locator('#kitOutput')).toContainText('Day 7');
+ await expect(page.locator('#kitOutput')).toContainText('Our pilot uses a single work order inbox');
+ await expect(page.locator('#kitOutput')).toContainText('No prospect data, sending or verified results were generated.');
+ await expect(page.locator('#downloadKit')).toBeVisible();
+ await expect(page.locator('#exportTemplate')).toBeVisible();
+ await page.screenshot({path:'test-results/product-led-desktop.png',fullPage:true});
+});
+
+test('Free kit can be persisted to a real PostgreSQL draft campaign and opened',async ({page})=>{
+ await createKit(page);
+ const [response]=await Promise.all([
+   page.waitForResponse(x=>x.url().includes('/api/fa/campaigns')&&x.request().method()==='POST'),
+   page.locator('#saveKit').click()
+ ]);
+ expect(response.status()).toBe(201);
+ await expect(page).toHaveURL(/\/fa/);
+ const stateResponse=await page.request.get('/api/fa/state');
+ expect(stateResponse.ok()).toBe(true);
+ const state=await stateResponse.json();
+ expect(state.campaigns.length).toBe(1);
+ expect(state.campaigns[0].name).toContain('Property managers in Vancouver');
+ expect(state.campaigns[0].status).toBe('draft');
+ expect(state.contacts.length).toBe(0);
+ expect(state.metrics.converted_verified).toBe(0);
+});
+
+test('Waitlist saves real consent record; no payment or fake queue position',async ({page})=>{
+ await page.goto('/');
+ await page.locator('[data-interest]').click();
+ await expect(page.getByRole('dialog')).toBeVisible();
+ await page.locator('#interestForm [name=email]').fill('growth-qa-'+Date.now()+'@example.net');
+ await page.locator('#interestForm [name=website]').fill('example.org');
+ await page.locator('#interestForm [name=consent]').check();
+ const [response]=await Promise.all([
+   page.waitForResponse(x=>x.url().includes('/api/public/interest')&&x.request().method()==='POST'),
+   page.locator('#interestSubmit').click()
+ ]);
+ expect(response.ok()).toBe(true);
+ await expect(page.getByRole('dialog')).toContainText('Request received');
+ await expect(page.getByRole('dialog')).toContainText('No charge was made');
+});
+
+test('Free workspace CTA opens a real guest workspace',async ({page})=>{
  await page.goto('/');
  await page.locator('.headright').getByRole('link',{name:/Start free/}).click();
  await expect(page).toHaveURL(/\/app/);
- await expect(page.locator('nav#nav button[title="Overview"]')).toBeVisible();
  await expect(page.locator('#accountType')).toContainText('Instant workspace');
 });
 
-test('Hero URL carries into website analysis with no setup form',async ({page})=>{
- let received='';
- await page.route('**/api/analyze',async route=>{
-  received=JSON.parse(route.request().postData()||'{}').url;
-  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({mode:'SOURCE_EXTRACTED',domain:'example.com',profile:{name:'Example Company',offer:'Example offer'}})});
- });
- await page.goto('/');
- await page.locator('#siteInput').fill('example.com');
- await page.locator('#siteForm button').click();
- await expect(page).toHaveURL(/\/app/);
- await expect(page.locator('#main')).toContainText('Make your agent an expert');
- expect(received).toBe('https://example.com/');
-});
-
-test('Growth interest can be submitted with explicit consent, no payment',async ({page})=>{
- await page.goto('/');
- await page.locator('[data-interest="Growth early access"]').click();
- await expect(page.getByRole('dialog')).toBeVisible();
- const email='marketing-qa-'+Date.now()+'@example.com';
- await page.locator('input[name="email"]').fill(email);
- await page.locator('#interestForm input[name="website"]').fill('example.com');
- await page.locator('input[name="consent"]').check();
- await page.getByRole('button',{name:/Request access/}).click();
- await expect(page.getByRole('dialog')).toContainText('Request received');
- await expect(page.getByRole('dialog')).toContainText('Start free');
-});
-
-test('Mobile visitors can navigate, compare plans and access the workspace',async ({page})=>{
+test('Mobile responsive: nav, tool, pricing, no horizontal overflow',async ({page})=>{
  await page.setViewportSize({width:390,height:844});
  await page.goto('/');
  await page.locator('#menuToggle').click();
@@ -54,55 +84,40 @@ test('Mobile visitors can navigate, compare plans and access the workspace',asyn
  await page.locator('#mobileMenu').getByRole('link',{name:'Pricing'}).click();
  await expect(page).toHaveURL(/#pricing$/);
  await expect(page.locator('#mobileMenu')).toBeHidden();
- await expect(page.getByText('Free workspace does not include third-party')).toBeVisible();
- const dimensions=await page.evaluate(()=>({viewport:innerWidth,scroll:document.documentElement.scrollWidth}));
- expect(dimensions.scroll).toBeLessThanOrEqual(dimensions.viewport+2);
- await page.screenshot({path:'test-results/marketing-mobile.png',fullPage:true});
+ await expect(page.locator('#pricing')).toContainText('Free workspace');
+ const b=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:innerWidth}));
+ expect(b.width).toBeLessThanOrEqual(b.viewport+2);
+ await page.locator('#offerInput').fill('A simple booking service for local homeowners');
+ await page.locator('#buyerInput').fill('Busy homeowners in Vancouver');
+ await page.locator('#painInput').fill('Scheduling appointments takes too many calls');
+ await page.locator('#kitForm button[type=submit]').click();
+ await expect(page.locator('#kitOutput')).toHaveClass(/visible/);
+ const after=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:innerWidth}));
+ expect(after.width).toBeLessThanOrEqual(after.viewport+2);
+ await page.screenshot({path:'test-results/product-led-mobile.png',fullPage:true});
 });
 
-test('Privacy, terms, FAQ and mobile responsive affordances exist',async ({page})=>{
+test('FAQ, legal and public playbook alias remain available',async ({page})=>{
  await page.goto('/');
- await expect(page.locator('details')).toHaveCount(6);
- await page.locator('details').first().locator('summary').click();
- await expect(page.locator('details').first()).toHaveAttribute('open','');
+ await expect(page.locator('#faq details')).toHaveCount(6);
+ await page.locator('#faq details').first().locator('summary').click();
+ await expect(page.locator('#faq details').first()).toHaveAttribute('open','');
  await page.getByRole('link',{name:'Privacy'}).click();
  await expect(page).toHaveURL(/\/privacy/);
  await expect(page.getByRole('heading',{name:'Privacy'})).toBeVisible();
  await page.goto('/terms');
  await expect(page.getByRole('heading',{name:'Service terms'})).toBeVisible();
+ await page.goto('/playbook');
+ await expect(page.locator('#kitForm')).toBeVisible();
 });
 
-
-test("Landing page contains no displayed backslash-u escapes at 1440px desktop",async ({page})=>{
- await page.setViewportSize({width:1440,height:900});
- await page.goto("/");
- const visible=await page.evaluate(()=>({title:document.title,body:document.body.innerText}));
- expect(visible.title).not.toMatch(/\\u[0-9a-fA-F]{4}/);
- expect(visible.body).not.toMatch(/\\u[0-9a-fA-F]{4}/);
- expect(visible.body).toContain("✦");
- const bounds=await page.evaluate(()=>{
-   const brand=document.querySelector(".brand")?.getBoundingClientRect();
-   const logo=document.querySelector(".sitehead .logo")?.getBoundingClientRect();
-   const name=document.querySelector(".sitehead .brand span:last-child")?.getBoundingClientRect();
-   return {brand:brand?{left:brand.left,right:brand.right}:null,logo:logo?{left:logo.left,right:logo.right,width:logo.width}:null,name:name?{left:name.left,right:name.right}:null,viewport:innerWidth,scroll:document.documentElement.scrollWidth};
- });
- expect(bounds.logo).not.toBeNull();
- expect(bounds.logo.width).toBeGreaterThanOrEqual(36);
- expect(bounds.logo.right).toBeLessThan(bounds.name.left);
- expect(bounds.scroll).toBeLessThanOrEqual(bounds.viewport+2);
- await page.screenshot({path:"test-results/landing-desktop-clean.png",fullPage:true});
-});
-test("Mobile brand, icon text and CTA do not overlap at 390px",async ({page})=>{
- await page.setViewportSize({width:390,height:844});
- await page.goto("/");
- const values=await page.evaluate(()=>{
-  const logo=document.querySelector(".sitehead .logo")?.getBoundingClientRect();
-  const brandName=document.querySelector(".sitehead .brand span:last-child")?.getBoundingClientRect();
-  return {logoRight:logo?.right,brandLeft:brandName?.left,scroll:document.documentElement.scrollWidth,viewport:innerWidth,content:document.body.innerText};
- });
- expect(values.content).not.toMatch(/\\u[0-9a-fA-F]{4}/);
- expect(values.logoRight).toBeLessThan(values.brandLeft);
- expect(values.scroll).toBeLessThanOrEqual(values.viewport+2);
- await expect(page.locator("#siteForm button")).toBeVisible();
- await page.screenshot({path:"test-results/landing-mobile-clean.png",fullPage:true});
+test('User input is rendered as text rather than HTML; no fake prospect injected',async ({page})=>{
+ await page.goto('/');
+ await page.locator('#offerInput').fill('I help improve building repairs for residential property managers');
+ await page.locator('#buyerInput').fill('<img src=x onerror=alert(1)> Real home managers');
+ await page.locator('#painInput').fill('Service requests get lost and missed every single week');
+ await page.locator('#kitForm button[type=submit]').click();
+ await expect(page.locator('#kitOutput')).toHaveClass(/visible/);
+ expect(await page.locator('#kitOutput img').count()).toBe(0);
+ await expect(page.locator('#kitOutput')).toContainText('<img src=x onerror=alert(1)>');
 });
