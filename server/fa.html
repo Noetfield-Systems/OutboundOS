@@ -713,11 +713,15 @@ async function submit(e){
   if(f.id==='outcomeForm'){path='/api/fa/outcomes';b.prospect_id=selected}
   if(f.id==='handoffForm'){path='/api/fa/handoff';b.prospect_id=selected}
   if(f.id==='evidenceForm'){path='/api/fa/evidence';b.prospect_id=selected}
+  if(f.id==='completeActionForm'){path='/api/fa/actions/complete';b.prospect_id=selected}
+  if(f.id==='savedViewForm'){path='/api/fa/views';b.filters=Object.assign({},filters)}
+  if(f.id==='importCsvForm'){if(!importPreview||!importPreview.length)throw Error('فایل معتبر انتخاب نشده است.');path='/api/fa/contacts/import';b.rows=importPreview}
   var result=await api(path,method,b);
   if(f.id==='contactForm'){selected=result.id;detailTab='profile'}
   if(f.id==='draftForm')detailTab='confirm';
-  if(f.id==='sendForm'||f.id==='replyForm'||f.id==='outcomeForm'||f.id==='evidenceForm')detailTab='activity';
-  if(f.id==='campaignEditForm'||f.id==='campaignForm')closeDrawer();
+  if(f.id==='sendForm'||f.id==='replyForm'||f.id==='outcomeForm'||f.id==='evidenceForm'||f.id==='completeActionForm')detailTab='activity';
+  if(f.id==='campaignEditForm'||f.id==='campaignForm'||f.id==='savedViewForm'||f.id==='importCsvForm')closeDrawer();
+  if(f.id==='importCsvForm')toast('CSV: '+N(result.added)+' افزوده، '+N(result.duplicate)+' تکراری، '+N(result.invalid)+' نامعتبر');
   toast('اطلاعات با موفقیت در PostgreSQL ذخیره شد'+(result.verification?' · وضعیت: '+result.verification:''));
   await load();
  }catch(err){toast(err.message,true)}
