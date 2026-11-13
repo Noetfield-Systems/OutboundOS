@@ -75,9 +75,10 @@ test('Premium API: no fake verification on manually reported outcomes',async ({p
  await page.locator('[data-detail-tab="outcome"]').click();
  await page.locator('#outcomeForm [name="outcome"]').selectOption('converted');
  await page.locator('#outcomeForm [name="summary"]').fill('Only synthetic E2E user self-report');
- await page.locator('#outcomeForm button[type="submit"]').click();
+ const [outcomeResponse]=await Promise.all([page.waitForResponse(r=>r.url().includes('/api/fa/outcomes')),page.locator('#outcomeForm button[type="submit"]').click()]);
+ expect(outcomeResponse.ok(),JSON.stringify(await outcomeResponse.json())).toBe(true);
+ await expect.poll(async()=>{const r=await page.request.get('/api/fa/state');return (await r.json()).metrics.converted_reported}).toBe(1);
  const state=await (await page.request.get('/api/fa/state')).json();
- expect(state.metrics.converted_reported).toBe(1);
  expect(state.metrics.converted_verified).toBe(0);
  await expect(page.locator('#goalFraction')).toContainText('۰ / ۱۰');
 });
