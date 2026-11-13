@@ -58,7 +58,9 @@ test('Persian pilot: campaign → contact → draft → manual send → reply �
   await page.locator('#handoffForm [name="handoff_type"]').selectOption('human');
   await page.locator('#handoffForm [name="handoff_to"]').fill('QA Human');
   await page.locator('#handoffForm [name="next_action"]').fill('Review QA-only outcome');
-  await page.locator('#handoffForm button[type="submit"]').click();
+  const [handoffResponse]=await Promise.all([page.waitForResponse(r=>r.url().includes('/api/fa/handoff')),page.locator('#handoffForm button[type="submit"]').click()]);
+  expect(handoffResponse.ok()).toBe(true);
+  await expect.poll(async()=>{const r=await page.request.get('/api/fa/state');return (await r.json()).contacts[0].owner}).toBe('QA Human');
 
   const state = await page.request.get('/api/fa/state');
   expect(state.ok()).toBeTruthy();
